@@ -81,11 +81,24 @@ export default function SearchPage() {
   const [date, setDate] = useState("");
   const [minWeight, setMinWeight] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  // Read URL params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlFrom = params.get("from") || "";
+    const urlTo = params.get("to") || "";
+    if (urlFrom) setFrom(urlFrom);
+    if (urlTo) setTo(urlTo);
+    if (urlFrom || urlTo) setShowFilters(true);
+    setInitialized(true);
+  }, []);
 
   useEffect(() => {
+    if (!initialized) return;
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, initialized]);
 
   async function loadData() {
     setLoading(true);

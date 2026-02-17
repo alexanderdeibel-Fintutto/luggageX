@@ -26,7 +26,19 @@ import {
   ArrowLeft,
   Send,
   CheckCircle2,
+  User,
 } from "lucide-react";
+
+interface SimilarOffer {
+  id: string;
+  departureAirport: string;
+  arrivalAirport: string;
+  departureDate: string;
+  availableWeight: number;
+  flatPrice: number | null;
+  pricePerKg: number | null;
+  user: { name: string; rating: number };
+}
 
 interface OfferDetail {
   id: string;
@@ -77,11 +89,24 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [similarOffers, setSimilarOffers] = useState<SimilarOffer[]>([]);
 
   useEffect(() => {
     fetch(`/api/offers/${id}`)
       .then((r) => r.json())
-      .then((data) => setOffer(data.offer))
+      .then((data) => {
+        setOffer(data.offer);
+        // Fetch similar offers on the same route
+        if (data.offer) {
+          fetch(`/api/offers?from=${data.offer.departureAirport}&to=${data.offer.arrivalAirport}`)
+            .then((r) => r.json())
+            .then((d) => {
+              const others = (d.offers || []).filter((o: SimilarOffer) => o.id !== id).slice(0, 3);
+              setSimilarOffers(others);
+            })
+            .catch(() => {});
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
@@ -423,17 +448,19 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
           {/* Carrier Profile */}
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Avatar name={offer.user.name} src={offer.user.avatarUrl} size="lg" />
-                <div>
-                  <div className="font-semibold">{offer.user.name}</div>
-                  {offer.user.verified && (
-                    <Badge variant="success" className="text-xs gap-1">
-                      <Shield className="h-3 w-3" /> Verifiziert
-                    </Badge>
-                  )}
+              <Link href={`/users/${offer.user.id}`} className="block">
+                <div className="flex items-center gap-3 mb-4">
+                  <Avatar name={offer.user.name} src={offer.user.avatarUrl} size="lg" />
+                  <div>
+                    <div className="font-semibold hover:text-primary transition-colors">{offer.user.name}</div>
+                    {offer.user.verified && (
+                      <Badge variant="success" className="text-xs gap-1">
+                        <Shield className="h-3 w-3" /> Verifiziert
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </Link>
               <div className="space-y-2 text-sm">
                 {offer.user.rating > 0 && (
                   <div className="flex items-center gap-2">
@@ -451,10 +478,61 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
                   {offer.user.bio}
                 </p>
               )}
+              <Link href={`/users/${offer.user.id}`}>
+                <Button variant="outline" size="sm" className="w-full mt-4 gap-2">
+                  <User className="h-3.5 w-3.5" />
+                  Profil ansehen
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Similar Offers */}
+      {similarOffers.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold mb-4">Ähnliche Angebote auf dieser Route</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {similarOffers.map((sim) => (
+              <Link key={sim.id} href={`/offers/${sim.id}`}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 font-bold mb-2">
+                      {sim.departureAirport}
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      {sim.arrivalAirport}
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      {formatDateTime(sim.departureDate)}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">{formatWeight(sim.availableWeight)}</span>
+                      <span className="font-bold text-primary">
+                        {sim.flatPrice
+                          ? formatCurrency(sim.flatPrice)
+                          : sim.pricePerKg
+                          ? `${formatCurrency(sim.pricePerKg)}/kg`
+                          : "VB"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                      {sim.user.rating > 0 && (
+                        <>
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          <span>{sim.user.rating.toFixed(1)}</span>
+                          <span className="mx-1">|</span>
+                        </>
+                      )}
+                      <span>{sim.user.name}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

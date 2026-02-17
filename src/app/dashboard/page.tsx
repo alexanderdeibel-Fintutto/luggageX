@@ -21,6 +21,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { DashboardAnalytics } from "@/components/dashboard-analytics";
+import { ActivityTimeline } from "@/components/activity-timeline";
 
 interface Match {
   id: string;
@@ -465,6 +466,11 @@ export default function DashboardPage() {
             })
           )}
         </div>
+      )}
+
+      {/* Activity Timeline */}
+      {userId && matches.length > 0 && (
+        <ActivityTimeline matches={matches} userId={userId} />
       )}
     </div>
   );

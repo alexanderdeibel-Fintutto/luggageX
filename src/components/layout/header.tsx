@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface UserData {
   id: string;
@@ -76,12 +77,18 @@ export function Header() {
               Gepäck suchen
             </Button>
           </Link>
+          <ThemeToggle />
           {user ? (
             <>
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <MessageSquare className="h-4 w-4" />
                   Dashboard
+                </Button>
+              </Link>
+              <Link href="/messages">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Nachrichten
                 </Button>
               </Link>
               <NotificationBell />
@@ -146,7 +153,12 @@ export function Header() {
             <>
               <Link href="/dashboard" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  <MessageSquare className="h-4 w-4" /> Dashboard
+                  Dashboard
+                </Button>
+              </Link>
+              <Link href="/messages" onClick={() => setMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start gap-2">
+                  <MessageSquare className="h-4 w-4" /> Nachrichten
                 </Button>
               </Link>
               <Link href="/profile" onClick={() => setMenuOpen(false)}>
@@ -159,6 +171,9 @@ export function Header() {
                   <Settings className="h-4 w-4" /> Einstellungen
                 </Button>
               </Link>
+              <div className="pt-2 border-t">
+                <ThemeToggle />
+              </div>
               <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" /> Abmelden
               </Button>
