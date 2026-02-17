@@ -2,11 +2,17 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { formatCurrency, formatDateTime, formatWeight } from "@/lib/utils";
+import { SIZE_CATEGORIES, ITEM_CATEGORIES } from "@/lib/airports";
 import {
   Plane,
   ArrowRight,
@@ -18,6 +24,8 @@ import {
   Clock,
   Loader2,
   ArrowLeft,
+  Send,
+  CheckCircle2,
 } from "lucide-react";
 
 interface OfferDetail {
@@ -62,8 +70,13 @@ const HANDOVER_LABELS: Record<string, string> = {
 
 export default function OfferDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const [offer, setOffer] = useState<OfferDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch(`/api/offers/${id}`)
@@ -72,6 +85,80 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleContactCarrier() {
+    // Check if logged in first
+    const res = await fetch("/api/auth/me");
+    if (!res.ok) {
+      router.push(`/login?redirect=/offers/${id}`);
+      return;
+    }
+    setShowRequestForm(true);
+  }
+
+  async function handleSubmitRequest(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!offer) return;
+    setSubmitting(true);
+    setError("");
+
+    const formData = new FormData(e.currentTarget);
+
+    // Step 1: Create a request
+    const requestData = {
+      departureCity: offer.departureCity,
+      arrivalCity: offer.arrivalCity,
+      departureAirport: offer.departureAirport,
+      arrivalAirport: offer.arrivalAirport,
+      earliestDate: offer.departureDate.split("T")[0],
+      latestDate: offer.departureDate.split("T")[0],
+      neededWeight: Number(formData.get("neededWeight")),
+      sizeCategory: formData.get("sizeCategory") as string,
+      itemDescription: formData.get("itemDescription") as string,
+      itemCategory: formData.get("itemCategory") as string,
+      maxBudget: Number(formData.get("maxBudget")) || undefined,
+      requestType: "shipment",
+      pickupPreference: "flexible",
+      dropoffPreference: "flexible",
+    };
+
+    try {
+      const reqRes = await fetch("/api/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData),
+      });
+      const reqResult = await reqRes.json();
+      if (!reqRes.ok) {
+        setError(reqResult.error || "Fehler beim Erstellen");
+        return;
+      }
+
+      // Step 2: Create a match
+      const matchRes = await fetch("/api/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          offerId: offer.id,
+          requestId: reqResult.request.id,
+        }),
+      });
+      const matchResult = await matchRes.json();
+      if (!matchRes.ok) {
+        setError(matchResult.error || "Fehler beim Erstellen des Matches");
+        return;
+      }
+
+      setSuccess(true);
+      setTimeout(() => {
+        router.push(`/matches/${matchResult.match.id}`);
+      }, 1500);
+    } catch {
+      setError("Netzwerkfehler");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -207,6 +294,105 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
               </div>
             </CardContent>
           </Card>
+
+          {/* Request Form (inline) */}
+          {showRequestForm && !success && (
+            <Card className="border-2 border-primary/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Send className="h-5 w-5 text-primary" />
+                  Anfrage an {offer.user.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitRequest} className="space-y-4">
+                  {error && (
+                    <div className="rounded-lg bg-destructive/10 text-destructive text-sm p-3">
+                      {error}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="neededWeight">Benötigtes Gewicht (kg)</Label>
+                      <Input
+                        id="neededWeight"
+                        name="neededWeight"
+                        type="number"
+                        step="0.5"
+                        max={offer.availableWeight}
+                        placeholder={`max. ${offer.availableWeight}`}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sizeCategory">Größe</Label>
+                      <Select id="sizeCategory" name="sizeCategory" defaultValue="M">
+                        {SIZE_CATEGORIES.map((s) => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="itemCategory">Kategorie</Label>
+                    <Select id="itemCategory" name="itemCategory" defaultValue="general">
+                      {ITEM_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="itemDescription">Was möchtest du transportieren?</Label>
+                    <Textarea
+                      id="itemDescription"
+                      name="itemDescription"
+                      placeholder="Beschreibe genau, was du versenden möchtest..."
+                      required
+                      minLength={5}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="maxBudget">Dein Budget (EUR, optional)</Label>
+                    <Input
+                      id="maxBudget"
+                      name="maxBudget"
+                      type="number"
+                      placeholder={
+                        offer.flatPrice
+                          ? `Vorgeschlagen: ${offer.flatPrice}`
+                          : offer.pricePerKg
+                          ? `z.B. ${offer.pricePerKg * 5} für 5kg`
+                          : "Dein Angebot"
+                      }
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" className="gap-2" disabled={submitting}>
+                      {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                      <Send className="h-4 w-4" />
+                      Anfrage senden
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => setShowRequestForm(false)}>
+                      Abbrechen
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {success && (
+            <Card className="border-2 border-green-500/30">
+              <CardContent className="py-8 text-center">
+                <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold mb-1">Anfrage gesendet!</h3>
+                <p className="text-sm text-muted-foreground">
+                  Du wirst gleich zum Chat weitergeleitet...
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -225,9 +411,12 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
               {offer.negotiable && (
                 <Badge variant="secondary" className="mt-2">Verhandlungsbasis</Badge>
               )}
-              <Button className="w-full mt-4 gap-2" size="lg">
-                Anfrage senden
-              </Button>
+              {!showRequestForm && !success && offer.status === "active" && (
+                <Button className="w-full mt-4 gap-2" size="lg" onClick={handleContactCarrier}>
+                  <Send className="h-4 w-4" />
+                  Anfrage senden
+                </Button>
+              )}
             </CardContent>
           </Card>
 
