@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedPaths = ["/dashboard", "/profile", "/offers/new", "/requests/new", "/matches"];
+const protectedPaths = ["/dashboard", "/profile", "/offers/new", "/requests/new", "/matches", "/settings"];
 
 export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("luggagex_session");
@@ -18,5 +18,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*", "/offers/new", "/requests/new", "/matches/:path*"],
+  matcher: ["/dashboard/:path*", "/profile/:path*", "/offers/new", "/requests/new", "/matches/:path*", "/settings/:path*"],
 };

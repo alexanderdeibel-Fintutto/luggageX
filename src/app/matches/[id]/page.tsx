@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { PaymentFlow } from "@/components/payment-flow";
+import { formatCurrency, formatDateTime, formatWeight } from "@/lib/utils";
 import {
   Plane,
   ArrowRight,
@@ -20,6 +21,8 @@ import {
   Shield,
   Package,
   XCircle,
+  CreditCard,
+  Weight,
 } from "lucide-react";
 
 interface MatchDetail {
@@ -41,6 +44,7 @@ interface MatchDetail {
     departureCity: string;
     arrivalCity: string;
     departureDate: string;
+    availableWeight: number;
     userId: string;
     user: { id: string; name: string; rating: number; verified: boolean; avatarUrl: string | null; phone: string | null };
   };
@@ -66,22 +70,48 @@ interface MatchDetail {
 export default function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [match, setMatch] = useState<MatchDetail | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [rating, setRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [showPayment, setShowPayment] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadMatch();
+    loadUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [match?.messages]);
+
+  // Mark messages as read when viewing
+  useEffect(() => {
+    if (match) {
+      fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId: id }),
+      }).catch(() => {});
+    }
+  }, [match, id]);
+
+  async function loadUser() {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUserId(data.user.id);
+      }
+    } catch {
+      // silent
+    }
+  }
 
   async function loadMatch() {
     try {
@@ -169,11 +199,25 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
   const statusColors: Record<string, string> = {
     proposed: "secondary",
     accepted: "default",
+    paid: "default",
     in_transit: "warning",
     completed: "success",
     cancelled: "destructive",
     declined: "destructive",
   };
+
+  const statusLabels: Record<string, string> = {
+    proposed: "Vorgeschlagen",
+    accepted: "Akzeptiert",
+    paid: "Bezahlt",
+    in_transit: "In Zustellung",
+    completed: "Abgeschlossen",
+    cancelled: "Storniert",
+    declined: "Abgelehnt",
+  };
+
+  const isSender = match.request.userId === currentUserId;
+  const isCarrier = match.offer.userId === currentUserId;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -182,16 +226,17 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
       </Link>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Badge variant={(statusColors[match.status] || "secondary") as "default" | "secondary" | "destructive" | "success" | "warning"}>
-              {match.status === "proposed" ? "Vorgeschlagen" :
-               match.status === "accepted" ? "Akzeptiert" :
-               match.status === "in_transit" ? "In Zustellung" :
-               match.status === "completed" ? "Abgeschlossen" :
-               match.status === "cancelled" ? "Storniert" : match.status}
+              {statusLabels[match.status] || match.status}
             </Badge>
+            {match.transaction && (
+              <Badge variant="success" className="gap-1">
+                <CreditCard className="h-3 w-3" /> Escrow
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xl font-bold">
             {match.offer.departureCity}
@@ -202,7 +247,7 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
             </span>
           </div>
         </div>
-        {match.agreedPrice && (
+        {match.agreedPrice != null && match.agreedPrice > 0 && (
           <div className="text-2xl font-bold text-primary">
             {formatCurrency(match.agreedPrice)}
           </div>
@@ -229,8 +274,51 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
             </Card>
           )}
 
+          {/* Payment Flow - for accepted matches where sender hasn't paid */}
+          {match.status === "accepted" && isSender && !match.transaction && (
+            showPayment ? (
+              <PaymentFlow
+                matchId={match.id}
+                amount={match.agreedPrice || 0}
+                carrierName={match.offer.user.name}
+                route={`${match.offer.departureAirport} → ${match.offer.arrivalAirport}`}
+                onComplete={() => { setShowPayment(false); loadMatch(); }}
+              />
+            ) : (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <CreditCard className="h-5 w-5 text-primary mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium mb-1">Escrow-Zahlung leisten</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Bezahle jetzt, um die Übergabe zu starten. Dein Geld ist sicher bis zur Bestätigung.
+                      </p>
+                      <Button onClick={() => setShowPayment(true)} className="gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        {formatCurrency(match.agreedPrice || 0)} bezahlen
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          )}
+
+          {/* Carrier waiting for payment */}
+          {match.status === "accepted" && isCarrier && !match.transaction && (
+            <Card className="border-amber-300/30 bg-amber-50 dark:bg-amber-950/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Warte auf Zahlung vom Sender...
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Handover Protocol */}
-          {["accepted", "in_transit"].includes(match.status) && (
+          {["paid", "in_transit"].includes(match.status) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -250,13 +338,28 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
                     </div>
                   </div>
                 )}
+
+                {/* Progress bar */}
+                <div className="flex items-center gap-2">
+                  <div className={`flex-1 h-2 rounded-full ${match.pickupConfirmed ? "bg-green-500" : "bg-muted"}`} />
+                  <div className={`flex-1 h-2 rounded-full ${match.status === "in_transit" ? "bg-primary animate-pulse" : match.dropoffConfirmed ? "bg-green-500" : "bg-muted"}`} />
+                  <div className={`flex-1 h-2 rounded-full ${match.dropoffConfirmed ? "bg-green-500" : "bg-muted"}`} />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 rounded-lg border">
                     <div className="text-sm text-muted-foreground mb-2">Abholung</div>
                     {match.pickupConfirmed ? (
                       <div className="flex items-center justify-center gap-1 text-green-600">
                         <CheckCircle2 className="h-5 w-5" />
-                        <span className="text-sm font-medium">Bestätigt</span>
+                        <div>
+                          <span className="text-sm font-medium">Bestätigt</span>
+                          {match.pickupConfirmedAt && (
+                            <div className="text-xs text-muted-foreground">
+                              {formatDateTime(match.pickupConfirmedAt)}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <Button
@@ -273,7 +376,14 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
                     {match.dropoffConfirmed ? (
                       <div className="flex items-center justify-center gap-1 text-green-600">
                         <CheckCircle2 className="h-5 w-5" />
-                        <span className="text-sm font-medium">Bestätigt</span>
+                        <div>
+                          <span className="text-sm font-medium">Bestätigt</span>
+                          {match.dropoffConfirmedAt && (
+                            <div className="text-xs text-muted-foreground">
+                              {formatDateTime(match.dropoffConfirmedAt)}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <Button
@@ -287,6 +397,13 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
                     )}
                   </div>
                 </div>
+
+                {match.transaction && (
+                  <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 p-2 rounded-lg">
+                    <Shield className="h-3.5 w-3.5" />
+                    {formatCurrency(match.transaction.amount)} im Escrow gesichert
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -331,7 +448,12 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
                 ) : (
                   <div className="text-center">
                     <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
-                    <h3 className="font-semibold mb-2">Deal abgeschlossen!</h3>
+                    <h3 className="font-semibold mb-1">Deal abgeschlossen!</h3>
+                    {match.transaction && (
+                      <p className="text-sm text-green-600 mb-2">
+                        {formatCurrency(match.transaction.amount)} wurde freigegeben
+                      </p>
+                    )}
                     {match.reviews.length === 0 ? (
                       <Button onClick={() => setShowReview(true)} className="gap-2">
                         <Star className="h-4 w-4" /> Bewertung abgeben
@@ -359,22 +481,29 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
                     Noch keine Nachrichten. Schreibe die erste!
                   </div>
                 ) : (
-                  match.messages.map((msg) => (
-                    <div key={msg.id} className="flex items-start gap-2">
-                      <Avatar name={msg.sender.name} src={msg.sender.avatarUrl} size="sm" />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-sm font-medium">{msg.sender.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDateTime(msg.createdAt)}
-                          </span>
+                  match.messages.map((msg) => {
+                    const isMe = msg.sender.id === currentUserId;
+                    return (
+                      <div key={msg.id} className={`flex items-start gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
+                        <Avatar name={msg.sender.name} src={msg.sender.avatarUrl} size="sm" />
+                        <div className={`flex-1 ${isMe ? "text-right" : ""}`}>
+                          <div className={`flex items-center gap-2 mb-0.5 ${isMe ? "justify-end" : ""}`}>
+                            <span className="text-sm font-medium">{msg.sender.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDateTime(msg.createdAt)}
+                            </span>
+                          </div>
+                          <p className={`text-sm rounded-lg px-3 py-2 inline-block max-w-[80%] ${
+                            isMe
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}>
+                            {msg.content}
+                          </p>
                         </div>
-                        <p className="text-sm bg-muted rounded-lg px-3 py-2 inline-block">
-                          {msg.content}
-                        </p>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -453,6 +582,7 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
               <div><span className="text-muted-foreground">Flug:</span> {match.offer.flightNumber}</div>
               <div><span className="text-muted-foreground">Route:</span> {match.offer.departureAirport} → {match.offer.arrivalAirport}</div>
               <div><span className="text-muted-foreground">Datum:</span> {formatDateTime(match.offer.departureDate)}</div>
+              <div><span className="text-muted-foreground">Kapazität:</span> {formatWeight(match.offer.availableWeight)}</div>
             </CardContent>
           </Card>
 
@@ -463,8 +593,12 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
                 <Package className="h-4 w-4" /> Sendung
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm">
+            <CardContent className="text-sm space-y-2">
               <p>{match.request.itemDescription}</p>
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Weight className="h-3.5 w-3.5" />
+                {formatWeight(match.request.neededWeight)}
+              </div>
             </CardContent>
           </Card>
 

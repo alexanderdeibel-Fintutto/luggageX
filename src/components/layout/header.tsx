@@ -12,8 +12,10 @@ import {
   LogOut,
   Menu,
   X,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notifications";
 
 interface UserData {
   id: string;
@@ -82,10 +84,16 @@ export function Header() {
                   Dashboard
                 </Button>
               </Link>
+              <NotificationBell />
               <Link href="/profile">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
                   {user.name}
+                </Button>
+              </Link>
+              <Link href="/settings">
+                <Button variant="ghost" size="icon">
+                  <Settings className="h-4 w-4" />
                 </Button>
               </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
@@ -105,12 +113,15 @@ export function Header() {
         </nav>
 
         {/* Mobile Menu Toggle */}
-        <button
-          className="md:hidden p-2"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-1 md:hidden">
+          {user && <NotificationBell />}
+          <button
+            className="p-2"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Nav */}
@@ -136,6 +147,16 @@ export function Header() {
               <Link href="/dashboard" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
                   <MessageSquare className="h-4 w-4" /> Dashboard
+                </Button>
+              </Link>
+              <Link href="/profile" onClick={() => setMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start gap-2">
+                  <User className="h-4 w-4" /> Profil
+                </Button>
+              </Link>
+              <Link href="/settings" onClick={() => setMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start gap-2">
+                  <Settings className="h-4 w-4" /> Einstellungen
                 </Button>
               </Link>
               <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
