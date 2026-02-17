@@ -15,6 +15,7 @@ import {
   Settings,
   Bookmark,
   BarChart3,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications";
@@ -103,6 +104,11 @@ export function Header() {
                   <BarChart3 className="h-4 w-4" />
                 </Button>
               </Link>
+              <Link href="/alerts">
+                <Button variant="ghost" size="icon" title="Route-Alerts">
+                  <Bell className="h-4 w-4" />
+                </Button>
+              </Link>
               <NotificationBell />
               <Link href="/profile">
                 <Button variant="ghost" size="sm" className="gap-2">
@@ -181,6 +187,11 @@ export function Header() {
               <Link href="/stats" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
                   <BarChart3 className="h-4 w-4" /> Statistiken
+                </Button>
+              </Link>
+              <Link href="/alerts" onClick={() => setMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start gap-2">
+                  <Bell className="h-4 w-4" /> Route-Alerts
                 </Button>
               </Link>
               <Link href="/profile" onClick={() => setMenuOpen(false)}>

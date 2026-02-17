@@ -30,6 +30,7 @@ model User {
   reviewsReceived Review[]         @relation("ReviewsReceived")
   transactions    Transaction[]    @relation("TransactionUser")
   bookmarks       Bookmark[]
+  routeAlerts     RouteAlert[]
 }
 
 model LuggageOffer {
@@ -203,5 +204,34 @@ model Review {
   comment     String?
   response    String?
   respondedAt DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model RouteAlert {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  departureCity   String
+  arrivalCity     String
+  departureAirport String?
+  arrivalAirport  String?
+  earliestDate    DateTime?
+  latestDate      DateTime?
+  maxPrice        Float?
+  minWeight       Float?
+  active          Boolean  @default(true)
+  lastNotified    DateTime?
+  createdAt       DateTime @default(now())
+}
+
+model ContactMessage {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  subject     String
+  message     String
+  category    String   @default("general") // general, bug, feature, billing, other
+  status      String   @default("open") // open, in_progress, resolved, closed
+  userId      String?
   createdAt   DateTime @default(now())
 }
