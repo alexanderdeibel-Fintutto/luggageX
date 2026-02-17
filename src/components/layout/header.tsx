@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   Settings,
+  Bookmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications";
@@ -91,6 +92,11 @@ export function Header() {
                   Nachrichten
                 </Button>
               </Link>
+              <Link href="/bookmarks">
+                <Button variant="ghost" size="icon" title="Gemerkt">
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              </Link>
               <NotificationBell />
               <Link href="/profile">
                 <Button variant="ghost" size="sm" className="gap-2">
@@ -159,6 +165,11 @@ export function Header() {
               <Link href="/messages" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
                   <MessageSquare className="h-4 w-4" /> Nachrichten
+                </Button>
+              </Link>
+              <Link href="/bookmarks" onClick={() => setMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start gap-2">
+                  <Bookmark className="h-4 w-4" /> Gemerkt
                 </Button>
               </Link>
               <Link href="/profile" onClick={() => setMenuOpen(false)}>

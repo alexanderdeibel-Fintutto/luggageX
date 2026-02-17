@@ -81,6 +81,7 @@ export default function SearchPage() {
   const [date, setDate] = useState("");
   const [minWeight, setMinWeight] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "weight_desc">("newest");
   const [initialized, setInitialized] = useState(false);
 
   // Read URL params on mount
@@ -223,6 +224,25 @@ export default function SearchPage() {
           </Card>
         )}
 
+        {/* Sort & Results Count */}
+        {!loading && tab === "offers" && offers.length > 0 && (
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm text-muted-foreground">
+              {offers.length} Angebot{offers.length !== 1 ? "e" : ""} gefunden
+            </span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="text-sm border rounded-md px-2 py-1.5 bg-background"
+            >
+              <option value="newest">Neueste zuerst</option>
+              <option value="price_asc">Preis aufsteigend</option>
+              <option value="price_desc">Preis absteigend</option>
+              <option value="weight_desc">Gewicht absteigend</option>
+            </select>
+          </div>
+        )}
+
         {/* Results */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -230,6 +250,18 @@ export default function SearchPage() {
           </div>
         ) : tab === "offers" ? (
           <div className="space-y-4">
+            {(() => {
+              const sorted = [...offers].sort((a, b) => {
+                const priceA = a.flatPrice || (a.pricePerKg ? a.pricePerKg * 5 : 999);
+                const priceB = b.flatPrice || (b.pricePerKg ? b.pricePerKg * 5 : 999);
+                if (sortBy === "price_asc") return priceA - priceB;
+                if (sortBy === "price_desc") return priceB - priceA;
+                if (sortBy === "weight_desc") return b.availableWeight - a.availableWeight;
+                return 0; // newest = default API order
+              });
+              offers.splice(0, offers.length, ...sorted);
+              return null;
+            })()}
             {offers.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">

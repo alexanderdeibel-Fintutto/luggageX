@@ -27,6 +27,8 @@ import {
   Send,
   CheckCircle2,
   User,
+  Bookmark,
+  Share2,
 } from "lucide-react";
 
 interface SimilarOffer {
@@ -90,6 +92,8 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [similarOffers, setSimilarOffers] = useState<SimilarOffer[]>([]);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [shareText, setShareText] = useState("");
 
   useEffect(() => {
     fetch(`/api/offers/${id}`)
@@ -110,6 +114,29 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function toggleBookmark() {
+    const res = await fetch("/api/bookmarks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ offerId: id }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setBookmarked(data.bookmarked);
+    }
+  }
+
+  function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: `LuggageX Angebot`, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).catch(() => {});
+      setShareText("Link kopiert!");
+      setTimeout(() => setShareText(""), 2000);
+    }
+  }
 
   async function handleContactCarrier() {
     // Check if logged in first
@@ -442,6 +469,21 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
                   Anfrage senden
                 </Button>
               )}
+              <div className="flex gap-2 mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`flex-1 gap-1.5 ${bookmarked ? "text-primary border-primary" : ""}`}
+                  onClick={toggleBookmark}
+                >
+                  <Bookmark className={`h-3.5 w-3.5 ${bookmarked ? "fill-primary" : ""}`} />
+                  {bookmarked ? "Gespeichert" : "Merken"}
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={handleShare}>
+                  <Share2 className="h-3.5 w-3.5" />
+                  {shareText || "Teilen"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

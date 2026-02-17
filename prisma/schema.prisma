@@ -29,6 +29,7 @@ model User {
   reviewsGiven    Review[]         @relation("ReviewsGiven")
   reviewsReceived Review[]         @relation("ReviewsReceived")
   transactions    Transaction[]    @relation("TransactionUser")
+  bookmarks       Bookmark[]
 }
 
 model LuggageOffer {
@@ -78,6 +79,7 @@ model LuggageOffer {
   updatedAt       DateTime @updatedAt
 
   matches         Match[]
+  bookmarks       Bookmark[]
 }
 
 model LuggageRequest {
@@ -176,6 +178,17 @@ model Transaction {
   releasedAt  DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Bookmark {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  offerId     String
+  offer       LuggageOffer @relation(fields: [offerId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, offerId])
 }
 
 model Review {

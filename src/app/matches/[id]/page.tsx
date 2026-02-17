@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { PaymentFlow } from "@/components/payment-flow";
+import { QrHandover } from "@/components/qr-handover";
 import { formatCurrency, formatDateTime, formatWeight } from "@/lib/utils";
 import {
   Plane,
@@ -319,93 +320,18 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Handover Protocol */}
           {["paid", "in_transit"].includes(match.status) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <QrCode className="h-5 w-5 text-primary" />
-                  Übergabeprotokoll
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {match.handoverCode && (
-                  <div className="text-center p-4 bg-muted rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-1">Übergabe-Code</div>
-                    <div className="text-3xl font-mono font-bold tracking-wider">
-                      {match.handoverCode}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Zeige diesen Code bei der Übergabe
-                    </div>
-                  </div>
-                )}
-
-                {/* Progress bar */}
-                <div className="flex items-center gap-2">
-                  <div className={`flex-1 h-2 rounded-full ${match.pickupConfirmed ? "bg-green-500" : "bg-muted"}`} />
-                  <div className={`flex-1 h-2 rounded-full ${match.status === "in_transit" ? "bg-primary animate-pulse" : match.dropoffConfirmed ? "bg-green-500" : "bg-muted"}`} />
-                  <div className={`flex-1 h-2 rounded-full ${match.dropoffConfirmed ? "bg-green-500" : "bg-muted"}`} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 rounded-lg border">
-                    <div className="text-sm text-muted-foreground mb-2">Abholung</div>
-                    {match.pickupConfirmed ? (
-                      <div className="flex items-center justify-center gap-1 text-green-600">
-                        <CheckCircle2 className="h-5 w-5" />
-                        <div>
-                          <span className="text-sm font-medium">Bestätigt</span>
-                          {match.pickupConfirmedAt && (
-                            <div className="text-xs text-muted-foreground">
-                              {formatDateTime(match.pickupConfirmedAt)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleAction("confirm_pickup")}
-                      >
-                        Abholung bestätigen
-                      </Button>
-                    )}
-                  </div>
-                  <div className="text-center p-3 rounded-lg border">
-                    <div className="text-sm text-muted-foreground mb-2">Abgabe</div>
-                    {match.dropoffConfirmed ? (
-                      <div className="flex items-center justify-center gap-1 text-green-600">
-                        <CheckCircle2 className="h-5 w-5" />
-                        <div>
-                          <span className="text-sm font-medium">Bestätigt</span>
-                          {match.dropoffConfirmedAt && (
-                            <div className="text-xs text-muted-foreground">
-                              {formatDateTime(match.dropoffConfirmedAt)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleAction("confirm_dropoff")}
-                        disabled={!match.pickupConfirmed}
-                      >
-                        Abgabe bestätigen
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {match.transaction && (
-                  <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 p-2 rounded-lg">
-                    <Shield className="h-3.5 w-3.5" />
-                    {formatCurrency(match.transaction.amount)} im Escrow gesichert
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <QrHandover
+              matchId={match.id}
+              handoverCode={match.handoverCode}
+              pickupConfirmed={match.pickupConfirmed}
+              pickupConfirmedAt={match.pickupConfirmedAt}
+              dropoffConfirmed={match.dropoffConfirmed}
+              dropoffConfirmedAt={match.dropoffConfirmedAt}
+              isCarrier={isCarrier}
+              isSender={isSender}
+              escrowAmount={match.transaction?.amount || null}
+              onAction={(action) => handleAction(action)}
+            />
           )}
 
           {/* Review */}
