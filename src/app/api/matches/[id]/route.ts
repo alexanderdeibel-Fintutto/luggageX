@@ -158,6 +158,13 @@ export async function PATCH(
       });
       break;
 
+    case "dispute":
+      await prisma.match.update({
+        where: { id },
+        data: { status: "disputed" },
+      });
+      break;
+
     default:
       return NextResponse.json({ error: "Ungültige Aktion" }, { status: 400 });
   }

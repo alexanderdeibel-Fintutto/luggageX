@@ -20,6 +20,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { useI18n, Locale } from "@/lib/i18n";
 
 interface UserSettings {
   id: string;
@@ -32,6 +33,7 @@ interface UserSettings {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { locale, setLocale, t } = useI18n();
   const [user, setUser] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,14 +46,21 @@ export default function SettingsPage() {
   const [bio, setBio] = useState("");
   const [phone, setPhone] = useState("");
 
-  // Notification preferences (local state only for demo)
+  // Notification preferences (persisted to localStorage)
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [matchNotifs, setMatchNotifs] = useState(true);
   const [messageNotifs, setMessageNotifs] = useState(true);
   const [marketingNotifs, setMarketingNotifs] = useState(false);
+  const [notifSaved, setNotifSaved] = useState(false);
 
   // Security
   const [showPassword, setShowPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [pwChanging, setPwChanging] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -69,7 +78,63 @@ export default function SettingsPage() {
       })
       .catch(() => router.push("/login"))
       .finally(() => setLoading(false));
+
+    // Load notification preferences
+    try {
+      const notifPrefs = JSON.parse(localStorage.getItem("luggagex-notif-prefs") || "{}");
+      if (notifPrefs.email !== undefined) setEmailNotifs(notifPrefs.email);
+      if (notifPrefs.match !== undefined) setMatchNotifs(notifPrefs.match);
+      if (notifPrefs.message !== undefined) setMessageNotifs(notifPrefs.message);
+      if (notifPrefs.marketing !== undefined) setMarketingNotifs(notifPrefs.marketing);
+    } catch {}
   }, [router]);
+
+  function saveNotifPrefs() {
+    localStorage.setItem("luggagex-notif-prefs", JSON.stringify({
+      email: emailNotifs,
+      match: matchNotifs,
+      message: messageNotifs,
+      marketing: marketingNotifs,
+    }));
+    setNotifSaved(true);
+    setTimeout(() => setNotifSaved(false), 3000);
+  }
+
+  async function changePassword() {
+    if (newPassword !== confirmNewPassword) {
+      setPwError("Passwörter stimmen nicht überein");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPwError("Passwort muss mindestens 8 Zeichen haben");
+      return;
+    }
+    setPwChanging(true);
+    setPwError("");
+    setPwSuccess(false);
+
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPwError(data.error || "Fehler beim Ändern");
+        return;
+      }
+      setPwSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setTimeout(() => setPwSuccess(false), 3000);
+    } catch {
+      setPwError("Netzwerkfehler");
+    } finally {
+      setPwChanging(false);
+    }
+  }
 
   async function saveProfile() {
     setSaving(true);
@@ -236,8 +301,14 @@ export default function SettingsPage() {
                   </div>
                 ))}
 
-                <Button className="gap-2">
-                  <Save className="h-4 w-4" /> Speichern
+                {notifSaved && (
+                  <div className="rounded-lg bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 text-sm p-3 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" /> Einstellungen gespeichert
+                  </div>
+                )}
+
+                <Button className="gap-2" onClick={saveNotifPrefs}>
+                  <Save className="h-4 w-4" /> {t("common.save")}
                 </Button>
               </CardContent>
             </Card>
@@ -251,10 +322,23 @@ export default function SettingsPage() {
                   <CardTitle>Passwort ändern</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {pwError && (
+                    <div className="rounded-lg bg-destructive/10 text-destructive text-sm p-3">{pwError}</div>
+                  )}
+                  {pwSuccess && (
+                    <div className="rounded-lg bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 text-sm p-3 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" /> Passwort erfolgreich geändert
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Aktuelles Passwort</Label>
                     <div className="relative">
-                      <Input type={showPassword ? "text" : "password"} placeholder="Aktuelles Passwort" />
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Aktuelles Passwort"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                      />
                       <button
                         type="button"
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -266,14 +350,29 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Neues Passwort</Label>
-                    <Input type="password" placeholder="Mind. 8 Zeichen" />
+                    <Input
+                      type="password"
+                      placeholder="Mind. 8 Zeichen"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Neues Passwort bestätigen</Label>
-                    <Input type="password" placeholder="Passwort wiederholen" />
+                    <Input
+                      type="password"
+                      placeholder="Passwort wiederholen"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    />
                   </div>
-                  <Button className="gap-2">
-                    <Shield className="h-4 w-4" /> Passwort ändern
+                  <Button
+                    className="gap-2"
+                    onClick={changePassword}
+                    disabled={pwChanging || !currentPassword || !newPassword}
+                  >
+                    {pwChanging ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                    Passwort ändern
                   </Button>
                 </CardContent>
               </Card>
@@ -351,14 +450,23 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label>Sprache</Label>
                   <div className="grid grid-cols-2 gap-3">
-                    <button className="p-3 rounded-lg border-2 border-primary bg-primary/5 text-left">
-                      <div className="font-medium text-sm">Deutsch</div>
-                      <div className="text-xs text-muted-foreground">German</div>
-                    </button>
-                    <button className="p-3 rounded-lg border-2 border-input hover:border-primary/50 text-left transition-colors">
-                      <div className="font-medium text-sm">English</div>
-                      <div className="text-xs text-muted-foreground">Englisch</div>
-                    </button>
+                    {([
+                      { id: "de" as Locale, label: "Deutsch", sub: "German" },
+                      { id: "en" as Locale, label: "English", sub: "Englisch" },
+                    ]).map((lang) => (
+                      <button
+                        key={lang.id}
+                        className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                          locale === lang.id
+                            ? "border-primary bg-primary/5"
+                            : "border-input hover:border-primary/50"
+                        }`}
+                        onClick={() => setLocale(lang.id)}
+                      >
+                        <div className="font-medium text-sm">{lang.label}</div>
+                        <div className="text-xs text-muted-foreground">{lang.sub}</div>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -385,9 +493,9 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <Button className="gap-2">
-                  <Save className="h-4 w-4" /> Speichern
-                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {locale === "de" ? "Sprache wird sofort geändert." : "Language changes instantly."}
+                </p>
               </CardContent>
             </Card>
           )}

@@ -27,6 +27,7 @@ export function Footer() {
               <li><Link href="/requests/new" className="hover:text-foreground transition-colors">Gepäck suchen</Link></li>
               <li><Link href="/faq" className="hover:text-foreground transition-colors">FAQ & Hilfe</Link></li>
               <li><Link href="/contact" className="hover:text-foreground transition-colors">Kontakt & Support</Link></li>
+              <li><Link href="/insurance" className="hover:text-foreground transition-colors">Versicherung & Schutz</Link></li>
             </ul>
           </div>
           <div>

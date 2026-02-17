@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useI18n } from "@/lib/i18n";
 
 interface UserData {
   id: string;
@@ -31,6 +32,7 @@ export function Header() {
   const [user, setUser] = useState<UserData | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -65,19 +67,19 @@ export function Header() {
           <Link href="/search">
             <Button variant="ghost" size="sm" className="gap-2">
               <Search className="h-4 w-4" />
-              Suchen
+              {t("nav.search")}
             </Button>
           </Link>
           <Link href="/offers/new">
             <Button variant="ghost" size="sm" className="gap-2">
               <PlusCircle className="h-4 w-4" />
-              Gepäck anbieten
+              {t("nav.offerLuggage")}
             </Button>
           </Link>
           <Link href="/requests/new">
             <Button variant="ghost" size="sm" className="gap-2">
               <PlusCircle className="h-4 w-4" />
-              Gepäck suchen
+              {t("nav.searchLuggage")}
             </Button>
           </Link>
           <ThemeToggle />
@@ -85,27 +87,27 @@ export function Header() {
             <>
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="gap-2">
-                  Dashboard
+                  {t("nav.dashboard")}
                 </Button>
               </Link>
               <Link href="/messages">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <MessageSquare className="h-4 w-4" />
-                  Nachrichten
+                  {t("nav.messages")}
                 </Button>
               </Link>
               <Link href="/bookmarks">
-                <Button variant="ghost" size="icon" title="Gemerkt">
+                <Button variant="ghost" size="icon" title={t("nav.bookmarks")}>
                   <Bookmark className="h-4 w-4" />
                 </Button>
               </Link>
               <Link href="/stats">
-                <Button variant="ghost" size="icon" title="Statistiken">
+                <Button variant="ghost" size="icon" title={t("nav.stats")}>
                   <BarChart3 className="h-4 w-4" />
                 </Button>
               </Link>
               <Link href="/alerts">
-                <Button variant="ghost" size="icon" title="Route-Alerts">
+                <Button variant="ghost" size="icon" title={t("nav.alerts")}>
                   <Bell className="h-4 w-4" />
                 </Button>
               </Link>
@@ -128,10 +130,10 @@ export function Header() {
           ) : (
             <div className="flex gap-2 ml-2">
               <Link href="/login">
-                <Button variant="outline" size="sm">Anmelden</Button>
+                <Button variant="outline" size="sm">{t("nav.login")}</Button>
               </Link>
               <Link href="/register">
-                <Button size="sm">Registrieren</Button>
+                <Button size="sm">{t("nav.register")}</Button>
               </Link>
             </div>
           )}
@@ -154,70 +156,70 @@ export function Header() {
         <div className="md:hidden border-t bg-background p-4 space-y-2">
           <Link href="/search" onClick={() => setMenuOpen(false)}>
             <Button variant="ghost" className="w-full justify-start gap-2">
-              <Search className="h-4 w-4" /> Suchen
+              <Search className="h-4 w-4" /> {t("nav.search")}
             </Button>
           </Link>
           <Link href="/offers/new" onClick={() => setMenuOpen(false)}>
             <Button variant="ghost" className="w-full justify-start gap-2">
-              <PlusCircle className="h-4 w-4" /> Gepäck anbieten
+              <PlusCircle className="h-4 w-4" /> {t("nav.offerLuggage")}
             </Button>
           </Link>
           <Link href="/requests/new" onClick={() => setMenuOpen(false)}>
             <Button variant="ghost" className="w-full justify-start gap-2">
-              <PlusCircle className="h-4 w-4" /> Gepäck suchen
+              <PlusCircle className="h-4 w-4" /> {t("nav.searchLuggage")}
             </Button>
           </Link>
           {user ? (
             <>
               <Link href="/dashboard" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  Dashboard
+                  {t("nav.dashboard")}
                 </Button>
               </Link>
               <Link href="/messages" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  <MessageSquare className="h-4 w-4" /> Nachrichten
+                  <MessageSquare className="h-4 w-4" /> {t("nav.messages")}
                 </Button>
               </Link>
               <Link href="/bookmarks" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  <Bookmark className="h-4 w-4" /> Gemerkt
+                  <Bookmark className="h-4 w-4" /> {t("nav.bookmarks")}
                 </Button>
               </Link>
               <Link href="/stats" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  <BarChart3 className="h-4 w-4" /> Statistiken
+                  <BarChart3 className="h-4 w-4" /> {t("nav.stats")}
                 </Button>
               </Link>
               <Link href="/alerts" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  <Bell className="h-4 w-4" /> Route-Alerts
+                  <Bell className="h-4 w-4" /> {t("nav.alerts")}
                 </Button>
               </Link>
               <Link href="/profile" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  <User className="h-4 w-4" /> Profil
+                  <User className="h-4 w-4" /> {t("nav.profile")}
                 </Button>
               </Link>
               <Link href="/settings" onClick={() => setMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  <Settings className="h-4 w-4" /> Einstellungen
+                  <Settings className="h-4 w-4" /> {t("nav.settings")}
                 </Button>
               </Link>
               <div className="pt-2 border-t">
                 <ThemeToggle />
               </div>
               <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
-                <LogOut className="h-4 w-4" /> Abmelden
+                <LogOut className="h-4 w-4" /> {t("nav.logout")}
               </Button>
             </>
           ) : (
             <div className="flex gap-2 pt-2">
               <Link href="/login" className="flex-1" onClick={() => setMenuOpen(false)}>
-                <Button variant="outline" className="w-full">Anmelden</Button>
+                <Button variant="outline" className="w-full">{t("nav.login")}</Button>
               </Link>
               <Link href="/register" className="flex-1" onClick={() => setMenuOpen(false)}>
-                <Button className="w-full">Registrieren</Button>
+                <Button className="w-full">{t("nav.register")}</Button>
               </Link>
             </div>
           )}
