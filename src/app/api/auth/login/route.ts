@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { verifyPassword, createSession } from "@/lib/auth";
+import { verifyPassword, setSessionCookie } from "@/lib/auth";
 import { loginSchema } from "@/lib/validations";
 
 export async function POST(request: NextRequest) {
@@ -33,11 +33,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await createSession(user.id);
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: { id: user.id, name: user.name, email: user.email },
     });
+    setSessionCookie(response, user.id);
+
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

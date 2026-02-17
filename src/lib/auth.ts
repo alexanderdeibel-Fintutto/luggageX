@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
@@ -13,18 +14,27 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(userId: string): Promise<string> {
+/** Set session cookie directly on a NextResponse (reliable in Route Handlers) */
+export function setSessionCookie(response: NextResponse, userId: string): void {
   const token = uuid();
-  // Store session in a simple way - in production use a proper session store
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, `${userId}:${token}`, {
+  response.cookies.set(SESSION_COOKIE, `${userId}:${token}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 30, // 30 days
     path: "/",
   });
-  return token;
+}
+
+/** Clear session cookie on a NextResponse */
+export function clearSessionCookie(response: NextResponse): void {
+  response.cookies.set(SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 0,
+    path: "/",
+  });
 }
 
 export async function getCurrentUser() {
@@ -55,9 +65,4 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
-}
-
-export async function logout() {
-  const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
 }
