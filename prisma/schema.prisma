@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  phone         String?
+  avatarUrl     String?
+  bio           String?
+  verified      Boolean   @default(false)
+  verifiedAt    DateTime?
+  rating        Float     @default(0)
+  totalDeals    Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  luggageOffers   LuggageOffer[]
+  luggageRequests LuggageRequest[]
+  sentMessages    Message[]        @relation("SentMessages")
+  receivedMessages Message[]       @relation("ReceivedMessages")
+  reviewsGiven    Review[]         @relation("ReviewsGiven")
+  reviewsReceived Review[]         @relation("ReviewsReceived")
+  transactions    Transaction[]    @relation("TransactionUser")
+}
+
+model LuggageOffer {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  // Flight info
+  flightNumber    String
+  airline         String
+  departureAirport String
+  arrivalAirport  String
+  departureCity   String
+  arrivalCity     String
+  departureDate   DateTime
+  arrivalDate     DateTime
+
+  // Luggage details
+  availableWeight Float
+  maxSingleItem   Float?
+  sizeCategory    String   @default("M") // S, M, L, XL
+  description     String?
+
+  // Pricing
+  pricePerKg      Float?
+  flatPrice       Float?
+  currency        String   @default("EUR")
+  negotiable      Boolean  @default(true)
+
+  // Handover
+  pickupType      String   @default("airport") // airport, address, meetingPoint
+  pickupAddress   String?
+  pickupLat       Float?
+  pickupLng       Float?
+  pickupTimeStart DateTime?
+  pickupTimeEnd   DateTime?
+
+  dropoffType     String   @default("airport")
+  dropoffAddress  String?
+  dropoffLat      Float?
+  dropoffLng      Float?
+  dropoffTimeStart DateTime?
+  dropoffTimeEnd  DateTime?
+
+  status          String   @default("active") // active, matched, in_transit, completed, cancelled, expired
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  matches         Match[]
+}
+
+model LuggageRequest {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  // Route
+  departureCity   String
+  arrivalCity     String
+  departureAirport String?
+  arrivalAirport  String?
+
+  // Date flexibility
+  earliestDate    DateTime
+  latestDate      DateTime
+
+  // Luggage needs
+  neededWeight    Float
+  sizeCategory    String   @default("M")
+  itemDescription String
+  itemCategory    String   @default("general") // general, documents, electronics, clothing, food, fragile, other
+
+  // Budget
+  maxBudget       Float?
+  currency        String   @default("EUR")
+
+  // Request type
+  requestType     String   @default("shipment") // shipment, extra_luggage
+  flightNumber    String?  // if co-passenger
+
+  // Handover preference
+  pickupPreference  String @default("flexible") // airport, address, flexible
+  dropoffPreference String @default("flexible")
+
+  status          String   @default("active") // active, matched, in_transit, completed, cancelled
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  matches         Match[]
+}
+
+model Match {
+  id              String   @id @default(uuid())
+  offerId         String
+  offer           LuggageOffer   @relation(fields: [offerId], references: [id])
+  requestId       String
+  request         LuggageRequest @relation(fields: [requestId], references: [id])
+
+  score           Float    @default(0)
+  agreedPrice     Float?
+  currency        String   @default("EUR")
+
+  status          String   @default("proposed") // proposed, accepted, declined, paid, in_transit, handed_over, completed, cancelled, disputed
+
+  // Handover details
+  handoverCode    String?  @unique
+  pickupConfirmed   Boolean @default(false)
+  pickupConfirmedAt DateTime?
+  dropoffConfirmed  Boolean @default(false)
+  dropoffConfirmedAt DateTime?
+  pickupPhotoUrl    String?
+  dropoffPhotoUrl   String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  messages        Message[]
+  transaction     Transaction?
+  reviews         Review[]
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id])
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  matchId     String   @unique
+  match       Match    @relation(fields: [matchId], references: [id])
+  userId      String
+  user        User     @relation("TransactionUser", fields: [userId], references: [id])
+  amount      Float
+  currency    String   @default("EUR")
+  status      String   @default("pending") // pending, held, released, refunded, disputed
+  paidAt      DateTime?
+  releasedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id])
+  fromUserId  String
+  fromUser    User     @relation("ReviewsGiven", fields: [fromUserId], references: [id])
+  toUserId    String
+  toUser      User     @relation("ReviewsReceived", fields: [toUserId], references: [id])
+  rating      Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+}
