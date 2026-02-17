@@ -129,6 +129,28 @@ export async function PATCH(
       });
       break;
 
+    case "propose_price": {
+      const price = Number(body.price);
+      if (!price || price <= 0) {
+        return NextResponse.json({ error: "Ungültiger Preis" }, { status: 400 });
+      }
+      await prisma.match.update({
+        where: { id },
+        data: { agreedPrice: price },
+      });
+      // Send system message about price proposal
+      const otherUserId = match.offer.userId === user.id ? match.request.userId : match.offer.userId;
+      await prisma.message.create({
+        data: {
+          matchId: id,
+          senderId: user.id,
+          receiverId: otherUserId,
+          content: `💰 Preisvorschlag: ${price.toFixed(2)} EUR`,
+        },
+      });
+      break;
+    }
+
     case "cancel":
       await prisma.match.update({
         where: { id },

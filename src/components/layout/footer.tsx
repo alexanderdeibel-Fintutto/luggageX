@@ -40,9 +40,9 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-3">Rechtliches</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><span className="cursor-default">AGB</span></li>
-              <li><span className="cursor-default">Datenschutz</span></li>
-              <li><span className="cursor-default">Impressum</span></li>
+              <li><Link href="/legal/agb" className="hover:text-foreground transition-colors">AGB</Link></li>
+              <li><Link href="/legal/datenschutz" className="hover:text-foreground transition-colors">Datenschutz</Link></li>
+              <li><Link href="/legal/impressum" className="hover:text-foreground transition-colors">Impressum</Link></li>
               <li><span className="cursor-default">Cookie-Richtlinie</span></li>
             </ul>
           </div>

@@ -79,6 +79,8 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
   const [rating, setRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [showPayment, setShowPayment] = useState(false);
+  const [showPriceProposal, setShowPriceProposal] = useState(false);
+  const [proposedPrice, setProposedPrice] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,9 +89,21 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Auto-refresh chat every 10s for active matches
+  useEffect(() => {
+    if (!match || ["completed", "cancelled", "declined"].includes(match.status)) return;
+    const interval = setInterval(() => {
+      fetch(`/api/matches/${id}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => { if (data?.match) setMatch(data.match); })
+        .catch(() => {});
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [match?.status, id]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [match?.messages]);
+  }, [match?.messages?.length]);
 
   // Mark messages as read when viewing
   useEffect(() => {
@@ -171,6 +185,25 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
       });
       if (res.ok) {
         setShowReview(false);
+        await loadMatch();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function proposePrice() {
+    const price = parseFloat(proposedPrice);
+    if (!price || price <= 0) return;
+    try {
+      const res = await fetch(`/api/matches/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "propose_price", price }),
+      });
+      if (res.ok) {
+        setProposedPrice("");
+        setShowPriceProposal(false);
         await loadMatch();
       }
     } catch (err) {
@@ -435,21 +468,53 @@ export default function MatchDetailPage({ params }: { params: Promise<{ id: stri
               </div>
 
               {!["completed", "cancelled", "declined"].includes(match.status) && (
-                <form onSubmit={sendMessage} className="flex gap-2">
-                  <Input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Nachricht schreiben..."
-                    disabled={sending}
-                  />
-                  <Button type="submit" size="icon" disabled={sending || !message.trim()}>
-                    {sending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
-                </form>
+                <div className="space-y-2">
+                  {/* Price Proposal */}
+                  {showPriceProposal ? (
+                    <div className="flex gap-2 items-center bg-muted/50 rounded-lg p-2">
+                      <span className="text-sm text-muted-foreground shrink-0">EUR</span>
+                      <Input
+                        type="number"
+                        step="0.50"
+                        min="1"
+                        value={proposedPrice}
+                        onChange={(e) => setProposedPrice(e.target.value)}
+                        placeholder="Preis..."
+                        className="h-8"
+                      />
+                      <Button size="sm" onClick={proposePrice} disabled={!proposedPrice}>
+                        Senden
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setShowPriceProposal(false)}>
+                        X
+                      </Button>
+                    </div>
+                  ) : (
+                    ["proposed", "accepted"].includes(match.status) && (
+                      <button
+                        onClick={() => setShowPriceProposal(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Preis vorschlagen
+                      </button>
+                    )
+                  )}
+                  <form onSubmit={sendMessage} className="flex gap-2">
+                    <Input
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Nachricht schreiben..."
+                      disabled={sending}
+                    />
+                    <Button type="submit" size="icon" disabled={sending || !message.trim()}>
+                      {sending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </form>
+                </div>
               )}
             </CardContent>
           </Card>

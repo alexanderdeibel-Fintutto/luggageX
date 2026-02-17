@@ -29,7 +29,9 @@ import {
   User,
   Bookmark,
   Share2,
+  Flag,
 } from "lucide-react";
+import { ReportDialog } from "@/components/report-dialog";
 
 interface SimilarOffer {
   id: string;
@@ -94,6 +96,7 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
   const [similarOffers, setSimilarOffers] = useState<SimilarOffer[]>([]);
   const [bookmarked, setBookmarked] = useState(false);
   const [shareText, setShareText] = useState("");
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     fetch(`/api/offers/${id}`)
@@ -484,8 +487,18 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
                   {shareText || "Teilen"}
                 </Button>
               </div>
+              <button
+                onClick={() => setShowReport(true)}
+                className="text-xs text-muted-foreground hover:text-destructive mt-3 flex items-center gap-1 mx-auto transition-colors"
+              >
+                <Flag className="h-3 w-3" /> Angebot melden
+              </button>
             </CardContent>
           </Card>
+
+          {showReport && (
+            <ReportDialog type="offer" targetId={id} onClose={() => setShowReport(false)} />
+          )}
 
           {/* Carrier Profile */}
           <Card>

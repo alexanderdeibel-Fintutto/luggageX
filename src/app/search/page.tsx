@@ -19,6 +19,8 @@ import {
   ArrowRight,
   Loader2,
   SlidersHorizontal,
+  Clock,
+  X,
 } from "lucide-react";
 import { TrendingRoutes } from "@/components/trending-routes";
 
@@ -83,8 +85,9 @@ export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "weight_desc">("newest");
   const [initialized, setInitialized] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<{ from: string; to: string }[]>([]);
 
-  // Read URL params on mount
+  // Read URL params and recent searches on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlFrom = params.get("from") || "";
@@ -92,6 +95,11 @@ export default function SearchPage() {
     if (urlFrom) setFrom(urlFrom);
     if (urlTo) setTo(urlTo);
     if (urlFrom || urlTo) setShowFilters(true);
+    // Load recent searches
+    try {
+      const saved = localStorage.getItem("luggagex-recent-searches");
+      if (saved) setRecentSearches(JSON.parse(saved));
+    } catch {}
     setInitialized(true);
   }, []);
 
@@ -131,6 +139,26 @@ export default function SearchPage() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     loadData();
+    // Save to recent searches
+    if (from || to) {
+      const entry = { from, to };
+      const updated = [entry, ...recentSearches.filter(
+        (s) => s.from !== from || s.to !== to
+      )].slice(0, 5);
+      setRecentSearches(updated);
+      localStorage.setItem("luggagex-recent-searches", JSON.stringify(updated));
+    }
+  }
+
+  function applyRecentSearch(search: { from: string; to: string }) {
+    setFrom(search.from);
+    setTo(search.to);
+    setShowFilters(true);
+  }
+
+  function clearRecentSearches() {
+    setRecentSearches([]);
+    localStorage.removeItem("luggagex-recent-searches");
   }
 
   return (
@@ -222,6 +250,31 @@ export default function SearchPage() {
               </form>
             </CardContent>
           </Card>
+        )}
+
+        {/* Recent Searches */}
+        {recentSearches.length > 0 && !loading && (offers.length === 0 && requests.length === 0) && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" /> Letzte Suchen
+              </span>
+              <button onClick={clearRecentSearches} className="text-xs text-muted-foreground hover:text-foreground">
+                Löschen
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recentSearches.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => applyRecentSearch(s)}
+                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border hover:border-primary hover:text-primary transition-colors"
+                >
+                  {s.from || "?"} <ArrowRight className="h-3 w-3" /> {s.to || "?"}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Sort & Results Count */}

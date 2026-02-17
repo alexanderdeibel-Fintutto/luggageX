@@ -17,7 +17,9 @@ import {
   Award,
   Quote,
   ArrowRight,
+  Flag,
 } from "lucide-react";
+import { ReportDialog } from "@/components/report-dialog";
 
 interface PublicUser {
   id: string;
@@ -51,6 +53,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     fetch(`/api/users/${id}`)
@@ -153,8 +156,18 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               <div className="text-xs text-muted-foreground">Mitglied seit</div>
             </div>
           </div>
+          <button
+            onClick={() => setShowReport(true)}
+            className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors mt-2"
+          >
+            <Flag className="h-3 w-3" /> Nutzer melden
+          </button>
         </CardContent>
       </Card>
+
+      {showReport && (
+        <ReportDialog type="user" targetId={id} onClose={() => setShowReport(false)} />
+      )}
 
       {/* Reviews */}
       <Card>
