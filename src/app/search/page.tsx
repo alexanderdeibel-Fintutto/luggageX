@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { AirportSearch } from "@/components/airport-search";
 import { formatCurrency, formatDateTime, formatWeight } from "@/lib/utils";
+import { Select } from "@/components/ui/select";
 import {
   Search,
   Plane,
@@ -21,6 +22,7 @@ import {
   SlidersHorizontal,
   Clock,
   X,
+  Filter,
 } from "lucide-react";
 import { TrendingRoutes } from "@/components/trending-routes";
 
@@ -86,6 +88,10 @@ export default function SearchPage() {
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "weight_desc">("newest");
   const [initialized, setInitialized] = useState(false);
   const [recentSearches, setRecentSearches] = useState<{ from: string; to: string }[]>([]);
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sizeFilter, setSizeFilter] = useState("");
+  const [negotiableOnly, setNegotiableOnly] = useState(false);
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
 
   // Read URL params and recent searches on mount
   useEffect(() => {
@@ -111,6 +117,16 @@ export default function SearchPage() {
 
   async function loadData() {
     setLoading(true);
+    // Count active filters
+    let count = 0;
+    if (from) count++;
+    if (to) count++;
+    if (date) count++;
+    if (minWeight) count++;
+    if (maxPrice) count++;
+    if (sizeFilter) count++;
+    if (negotiableOnly) count++;
+    setActiveFilterCount(count);
     try {
       if (tab === "offers") {
         const params = new URLSearchParams();
@@ -118,6 +134,9 @@ export default function SearchPage() {
         if (to) params.set("to", to);
         if (date) params.set("date", date);
         if (minWeight) params.set("minWeight", minWeight);
+        if (maxPrice) params.set("maxPrice", maxPrice);
+        if (sizeFilter) params.set("size", sizeFilter);
+        if (negotiableOnly) params.set("negotiable", "true");
         const res = await fetch(`/api/offers?${params}`);
         const data = await res.json();
         setOffers(data.offers || []);
@@ -191,9 +210,14 @@ export default function SearchPage() {
             variant="ghost"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className="ml-auto"
+            className="ml-auto relative"
           >
             <SlidersHorizontal className="h-4 w-4" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
           </Button>
         </div>
 
@@ -229,6 +253,41 @@ export default function SearchPage() {
                     </>
                   )}
                 </div>
+                {tab === "offers" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Max. Preis (EUR)</Label>
+                      <Input
+                        type="number"
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value)}
+                        placeholder="z.B. 50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Größenkategorie</Label>
+                      <Select value={sizeFilter} onChange={(e) => setSizeFilter(e.target.value)}>
+                        <option value="">Alle Größen</option>
+                        <option value="S">S - Klein</option>
+                        <option value="M">M - Mittel</option>
+                        <option value="L">L - Groß</option>
+                        <option value="XL">XL - Sehr groß</option>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>&nbsp;</Label>
+                      <label className="flex items-center gap-2 h-10 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={negotiableOnly}
+                          onChange={(e) => setNegotiableOnly(e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        <span className="text-sm">Nur verhandelbare Preise</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button type="submit" className="gap-2">
                     <Search className="h-4 w-4" />
@@ -242,6 +301,9 @@ export default function SearchPage() {
                       setTo("");
                       setDate("");
                       setMinWeight("");
+                      setMaxPrice("");
+                      setSizeFilter("");
+                      setNegotiableOnly(false);
                     }}
                   >
                     Zurücksetzen

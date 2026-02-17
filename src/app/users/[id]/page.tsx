@@ -20,6 +20,7 @@ import {
   Flag,
 } from "lucide-react";
 import { ReportDialog } from "@/components/report-dialog";
+import { UserBadges } from "@/components/user-badges";
 
 interface PublicUser {
   id: string;
@@ -156,9 +157,19 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               <div className="text-xs text-muted-foreground">Mitglied seit</div>
             </div>
           </div>
+          <div className="mt-4 pt-4 border-t">
+            <UserBadges
+              totalDeals={user.totalDeals}
+              rating={user.rating}
+              verified={user.verified}
+              completedAsCarrier={stats?.completedAsCarrier || 0}
+              completedAsSender={stats?.completedAsSender || 0}
+              memberSince={user.createdAt}
+            />
+          </div>
           <button
             onClick={() => setShowReport(true)}
-            className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors mt-2"
+            className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors mt-3"
           >
             <Flag className="h-3 w-3" /> Nutzer melden
           </button>

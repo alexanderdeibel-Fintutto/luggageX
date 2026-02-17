@@ -10,6 +10,9 @@ export async function GET(request: NextRequest) {
   const to = searchParams.get("to");
   const date = searchParams.get("date");
   const minWeight = searchParams.get("minWeight");
+  const maxPrice = searchParams.get("maxPrice");
+  const size = searchParams.get("size");
+  const negotiable = searchParams.get("negotiable");
   const status = searchParams.get("status") || "active";
 
   const where: Record<string, unknown> = { status };
@@ -25,6 +28,15 @@ export async function GET(request: NextRequest) {
     where.departureDate = { gte: dayStart, lte: dayEnd };
   }
   if (minWeight) where.availableWeight = { gte: parseFloat(minWeight) };
+  if (size) where.sizeCategory = size;
+  if (negotiable === "true") where.negotiable = true;
+  if (maxPrice) {
+    const mp = parseFloat(maxPrice);
+    where.OR = [
+      { flatPrice: { lte: mp } },
+      { pricePerKg: { lte: mp } },
+    ];
+  }
 
   const offers = await prisma.luggageOffer.findMany({
     where,

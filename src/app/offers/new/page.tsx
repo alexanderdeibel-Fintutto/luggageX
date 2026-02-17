@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { AirportSearch } from "@/components/airport-search";
 import { SIZE_CATEGORIES } from "@/lib/airports";
-import { Plane, Package, MapPin, Euro, Loader2 } from "lucide-react";
+import { Plane, Package, MapPin, Euro, Loader2, Copy } from "lucide-react";
+
+interface RelistData {
+  flightNumber: string;
+  departureAirport: string;
+  arrivalAirport: string;
+  availableWeight: number;
+  maxSingleItem: number | null;
+  sizeCategory: string;
+  description: string | null;
+  pricePerKg: number | null;
+  flatPrice: number | null;
+  negotiable: boolean;
+  pickupType: string;
+  pickupAddress: string | null;
+  dropoffType: string;
+  dropoffAddress: string | null;
+}
 
 export default function NewOfferPage() {
   const router = useRouter();
@@ -18,6 +36,27 @@ export default function NewOfferPage() {
   const [error, setError] = useState("");
   const [departureAirport, setDepartureAirport] = useState("");
   const [arrivalAirport, setArrivalAirport] = useState("");
+  const [relistData, setRelistData] = useState<RelistData | null>(null);
+  const [isRelist, setIsRelist] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const relistId = params.get("relist");
+    if (relistId) {
+      setIsRelist(true);
+      fetch(`/api/offers/${relistId}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => {
+          if (data?.offer) {
+            const o = data.offer;
+            setRelistData(o);
+            setDepartureAirport(o.departureAirport);
+            setArrivalAirport(o.arrivalAirport);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -68,10 +107,19 @@ export default function NewOfferPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Gepäck anbieten</h1>
+        <h1 className="text-3xl font-bold mb-2">
+          {isRelist ? "Angebot erneut einstellen" : "Gepäck anbieten"}
+        </h1>
         <p className="text-muted-foreground">
-          Biete dein freies Gepäck-Kontingent auf deinem Flug an
+          {isRelist
+            ? "Daten aus dem vorherigen Angebot wurden übernommen. Aktualisiere Datum und Details."
+            : "Biete dein freies Gepäck-Kontingent auf deinem Flug an"}
         </p>
+        {isRelist && (
+          <Badge variant="secondary" className="mt-2 gap-1">
+            <Copy className="h-3 w-3" /> Kopie eines früheren Angebots
+          </Badge>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -97,6 +145,7 @@ export default function NewOfferPage() {
                 id="flightNumber"
                 name="flightNumber"
                 placeholder="z.B. LH1234"
+                defaultValue={relistData?.flightNumber || ""}
                 required
               />
             </div>
@@ -161,6 +210,7 @@ export default function NewOfferPage() {
                   step="0.5"
                   min="0.5"
                   placeholder="z.B. 10"
+                  defaultValue={relistData?.availableWeight || ""}
                   required
                 />
               </div>
@@ -172,12 +222,13 @@ export default function NewOfferPage() {
                   type="number"
                   step="0.5"
                   placeholder="optional"
+                  defaultValue={relistData?.maxSingleItem || ""}
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="sizeCategory">Maximale Größe</Label>
-              <Select id="sizeCategory" name="sizeCategory" defaultValue="M">
+              <Select id="sizeCategory" name="sizeCategory" defaultValue={relistData?.sizeCategory || "M"}>
                 {SIZE_CATEGORIES.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label} ({s.description})
@@ -192,6 +243,7 @@ export default function NewOfferPage() {
                 name="description"
                 placeholder="z.B. Platz in meinem Koffer, keine Flüssigkeiten..."
                 rows={3}
+                defaultValue={relistData?.description || ""}
               />
             </div>
           </CardContent>
@@ -217,6 +269,7 @@ export default function NewOfferPage() {
                   step="0.5"
                   min="0"
                   placeholder="z.B. 5"
+                  defaultValue={relistData?.pricePerKg || ""}
                 />
               </div>
               <div className="space-y-2">
@@ -228,6 +281,7 @@ export default function NewOfferPage() {
                   step="1"
                   min="0"
                   placeholder="z.B. 20"
+                  defaultValue={relistData?.flatPrice || ""}
                 />
               </div>
             </div>
@@ -236,7 +290,7 @@ export default function NewOfferPage() {
                 type="checkbox"
                 id="negotiable"
                 name="negotiable"
-                defaultChecked
+                defaultChecked={relistData ? relistData.negotiable : true}
                 className="h-4 w-4 rounded border-input"
               />
               <Label htmlFor="negotiable" className="font-normal">
@@ -259,7 +313,7 @@ export default function NewOfferPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="pickupType">Abholung</Label>
-                <Select id="pickupType" name="pickupType" defaultValue="airport">
+                <Select id="pickupType" name="pickupType" defaultValue={relistData?.pickupType || "airport"}>
                   <option value="airport">Am Flughafen</option>
                   <option value="address">An einer Adresse</option>
                   <option value="meetingPoint">Treffpunkt</option>
@@ -271,13 +325,14 @@ export default function NewOfferPage() {
                   id="pickupAddress"
                   name="pickupAddress"
                   placeholder="Straße, PLZ, Ort"
+                  defaultValue={relistData?.pickupAddress || ""}
                 />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="dropoffType">Abgabe</Label>
-                <Select id="dropoffType" name="dropoffType" defaultValue="airport">
+                <Select id="dropoffType" name="dropoffType" defaultValue={relistData?.dropoffType || "airport"}>
                   <option value="airport">Am Flughafen</option>
                   <option value="address">An einer Adresse</option>
                   <option value="meetingPoint">Treffpunkt</option>
@@ -289,6 +344,7 @@ export default function NewOfferPage() {
                   id="dropoffAddress"
                   name="dropoffAddress"
                   placeholder="Straße, PLZ, Ort"
+                  defaultValue={relistData?.dropoffAddress || ""}
                 />
               </div>
             </div>

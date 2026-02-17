@@ -32,6 +32,7 @@ import {
   Flag,
 } from "lucide-react";
 import { ReportDialog } from "@/components/report-dialog";
+import { RouteVisual } from "@/components/route-visual";
 
 interface SimilarOffer {
   id: string;
@@ -242,24 +243,23 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Route Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-4">
           <Badge variant={offer.status === "active" ? "success" : "secondary"}>
-            {offer.status === "active" ? "Aktiv" : offer.status}
+            {offer.status === "active" ? "Aktiv" : offer.status === "paused" ? "Pausiert" : offer.status}
           </Badge>
           <span className="text-sm text-muted-foreground">
-            {offer.flightNumber} | {offer.airline}
+            {offer.airline}
           </span>
         </div>
-        <div className="flex items-center gap-4 text-3xl font-bold">
-          <span>{offer.departureCity}</span>
-          <div className="flex flex-col items-center">
-            <Plane className="h-6 w-6 text-primary" />
-            <div className="text-xs font-normal text-muted-foreground mt-1">
-              {offer.departureAirport} <ArrowRight className="h-3 w-3 inline" /> {offer.arrivalAirport}
-            </div>
-          </div>
-          <span>{offer.arrivalCity}</span>
-        </div>
+        <RouteVisual
+          departureCity={offer.departureCity}
+          arrivalCity={offer.arrivalCity}
+          departureAirport={offer.departureAirport}
+          arrivalAirport={offer.arrivalAirport}
+          departureDate={offer.departureDate}
+          arrivalDate={offer.arrivalDate}
+          flightNumber={offer.flightNumber}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

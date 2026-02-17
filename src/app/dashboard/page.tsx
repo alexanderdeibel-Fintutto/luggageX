@@ -19,6 +19,9 @@ import {
   Handshake,
   Eye,
   Trash2,
+  Pause,
+  Play,
+  Copy,
 } from "lucide-react";
 import { DashboardAnalytics } from "@/components/dashboard-analytics";
 import { ActivityTimeline } from "@/components/activity-timeline";
@@ -86,6 +89,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 
 const OFFER_STATUS: Record<string, { label: string; variant: "default" | "secondary" | "success" | "destructive" | "warning" }> = {
   active: { label: "Aktiv", variant: "success" },
+  paused: { label: "Pausiert", variant: "warning" },
   matched: { label: "Gematcht", variant: "default" },
   in_transit: { label: "Unterwegs", variant: "warning" },
   completed: { label: "Erledigt", variant: "secondary" },
@@ -138,6 +142,19 @@ export default function DashboardPage() {
     const res = await fetch(`/api/offers/${id}`, { method: "DELETE" });
     if (res.ok) {
       setMyOffers((prev) => prev.map((o) => o.id === id ? { ...o, status: "cancelled" } : o));
+    }
+  }
+
+  async function togglePauseOffer(id: string, currentStatus: string) {
+    const action = currentStatus === "active" ? "pause" : "reactivate";
+    const res = await fetch(`/api/offers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setMyOffers((prev) => prev.map((o) => o.id === id ? { ...o, status: data.offer.status } : o));
     }
   }
 
@@ -379,12 +396,33 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Link href={`/offers/${offer.id}`}>
                           <Button variant="ghost" size="icon" title="Ansehen">
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
+                        {(offer.status === "active" || offer.status === "paused") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={offer.status === "active" ? "Pausieren" : "Reaktivieren"}
+                            onClick={() => togglePauseOffer(offer.id, offer.status)}
+                          >
+                            {offer.status === "active" ? (
+                              <Pause className="h-4 w-4 text-warning" />
+                            ) : (
+                              <Play className="h-4 w-4 text-green-500" />
+                            )}
+                          </Button>
+                        )}
+                        {(offer.status === "expired" || offer.status === "cancelled" || offer.status === "completed") && (
+                          <Link href={`/offers/new?relist=${offer.id}`}>
+                            <Button variant="ghost" size="icon" title="Erneut einstellen">
+                              <Copy className="h-4 w-4 text-primary" />
+                            </Button>
+                          </Link>
+                        )}
                         {offer.status === "active" && (
                           <Button
                             variant="ghost"
