@@ -20,6 +20,7 @@ import {
   Loader2,
   SlidersHorizontal,
 } from "lucide-react";
+import { TrendingRoutes } from "@/components/trending-routes";
 
 interface Offer {
   id: string;
@@ -363,6 +364,11 @@ export default function SearchPage() {
             )}
           </div>
         )}
+
+        {/* Trending Routes */}
+        <div className="mt-8">
+          <TrendingRoutes />
+        </div>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlatformStats } from "@/components/platform-stats";
+import { HeroSearch } from "@/components/hero-search";
 
 export default function HomePage() {
   return (
@@ -54,6 +55,9 @@ export default function HomePage() {
                 </Button>
               </Link>
             </div>
+
+            {/* Quick Route Search */}
+            <HeroSearch />
           </div>
         </div>
         <div className="absolute top-20 left-10 opacity-10 hidden sm:block">

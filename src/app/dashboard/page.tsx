@@ -20,6 +20,7 @@ import {
   Eye,
   Trash2,
 } from "lucide-react";
+import { DashboardAnalytics } from "@/components/dashboard-analytics";
 
 interface Match {
   id: string;
@@ -98,6 +99,7 @@ export default function DashboardPage() {
   const [myOffers, setMyOffers] = useState<MyOffer[]>([]);
   const [myRequests, setMyRequests] = useState<MyRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState("");
   const [section, setSection] = useState<DashSection>("matches");
   const [matchFilter, setMatchFilter] = useState<"all" | "active" | "completed">("all");
 
@@ -106,11 +108,13 @@ export default function DashboardPage() {
       fetch("/api/matches").then((r) => r.ok ? r.json() : { matches: [] }),
       fetch("/api/offers/my").then((r) => r.ok ? r.json() : { offers: [] }),
       fetch("/api/requests/my").then((r) => r.ok ? r.json() : { requests: [] }),
+      fetch("/api/auth/me").then((r) => r.ok ? r.json() : { user: null }),
     ])
-      .then(([matchData, offerData, requestData]) => {
+      .then(([matchData, offerData, requestData, userData]) => {
         setMatches(matchData.matches || []);
         setMyOffers(offerData.offers || []);
         setMyRequests(requestData.requests || []);
+        if (userData.user) setUserId(userData.user.id);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -171,6 +175,11 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Analytics Overview */}
+      {userId && matches.length > 0 && (
+        <DashboardAnalytics matches={matches} userId={userId} />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
