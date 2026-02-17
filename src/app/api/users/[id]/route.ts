@@ -58,6 +58,8 @@ export async function GET(
       id: r.id,
       rating: r.rating,
       comment: r.comment,
+      response: r.response,
+      respondedAt: r.respondedAt,
       createdAt: r.createdAt,
       fromUser: r.fromUser,
       route: r.match.offer.departureAirport + " → " + r.match.offer.arrivalAirport,

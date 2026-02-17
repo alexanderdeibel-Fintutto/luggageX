@@ -38,18 +38,32 @@ export async function GET(request: NextRequest) {
     ];
   }
 
-  const offers = await prisma.luggageOffer.findMany({
-    where,
-    include: {
-      user: {
-        select: { id: true, name: true, rating: true, totalDeals: true, verified: true, avatarUrl: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "20");
+  const skip = (page - 1) * limit;
 
-  return NextResponse.json({ offers });
+  const [offers, total] = await Promise.all([
+    prisma.luggageOffer.findMany({
+      where,
+      include: {
+        user: {
+          select: { id: true, name: true, rating: true, totalDeals: true, verified: true, avatarUrl: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.luggageOffer.count({ where }),
+  ]);
+
+  return NextResponse.json({
+    offers,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+    hasMore: skip + offers.length < total,
+  });
 }
 
 export async function POST(request: NextRequest) {

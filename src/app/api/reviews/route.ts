@@ -83,3 +83,43 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// PATCH: Respond to a review
+export async function PATCH(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { reviewId, response } = body;
+
+    if (!reviewId || !response || response.trim().length < 2) {
+      return NextResponse.json({ error: "Antwort zu kurz" }, { status: 400 });
+    }
+
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    if (!review) {
+      return NextResponse.json({ error: "Bewertung nicht gefunden" }, { status: 404 });
+    }
+
+    if (review.toUserId !== user.id) {
+      return NextResponse.json({ error: "Nicht berechtigt" }, { status: 403 });
+    }
+
+    if (review.response) {
+      return NextResponse.json({ error: "Bereits beantwortet" }, { status: 409 });
+    }
+
+    const updated = await prisma.review.update({
+      where: { id: reviewId },
+      data: { response: response.trim(), respondedAt: new Date() },
+    });
+
+    return NextResponse.json({ review: updated });
+  } catch (error) {
+    console.error("Review response error:", error);
+    return NextResponse.json({ error: "Fehler beim Antworten" }, { status: 500 });
+  }
+}

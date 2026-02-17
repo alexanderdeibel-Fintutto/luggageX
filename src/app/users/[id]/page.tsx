@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Star,
   Shield,
@@ -18,6 +19,8 @@ import {
   Quote,
   ArrowRight,
   Flag,
+  Reply,
+  Loader2 as Loader2Icon,
 } from "lucide-react";
 import { ReportDialog } from "@/components/report-dialog";
 import { UserBadges } from "@/components/user-badges";
@@ -37,6 +40,8 @@ interface Review {
   id: string;
   rating: number;
   comment: string | null;
+  response: string | null;
+  respondedAt: string | null;
   createdAt: string;
   fromUser: { id: string; name: string; avatarUrl: string | null };
   route: string;
@@ -55,20 +60,51 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showReport, setShowReport] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [responseText, setResponseText] = useState("");
+  const [responding, setResponding] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/users/${id}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data) {
-          setUser(data.user);
-          setReviews(data.reviews || []);
-          setStats(data.stats);
-        }
-      })
+    Promise.all([
+      fetch(`/api/users/${id}`).then((r) => r.ok ? r.json() : null),
+      fetch("/api/auth/me").then((r) => r.ok ? r.json() : null),
+    ]).then(([data, authData]) => {
+      if (data) {
+        setUser(data.user);
+        setReviews(data.reviews || []);
+        setStats(data.stats);
+      }
+      if (authData?.user) setCurrentUserId(authData.user.id);
+    })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function submitResponse(reviewId: string) {
+    if (!responseText.trim()) return;
+    setResponding(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewId, response: responseText }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReviews((prev) =>
+          prev.map((r) =>
+            r.id === reviewId
+              ? { ...r, response: data.review.response, respondedAt: data.review.respondedAt }
+              : r
+          )
+        );
+        setRespondingTo(null);
+        setResponseText("");
+      }
+    } catch {}
+    setResponding(false);
+  }
 
   if (loading) {
     return (
@@ -227,11 +263,62 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                       <p className="text-sm text-muted-foreground">{review.comment}</p>
                     </div>
                   )}
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {new Date(review.createdAt).toLocaleDateString("de-DE", {
-                      day: "numeric", month: "long", year: "numeric",
-                    })}
+                  {/* Response */}
+                  {review.response && (
+                    <div className="mt-3 ml-4 pl-3 border-l-2 border-primary/30">
+                      <div className="flex items-center gap-1 text-xs font-medium text-primary mb-1">
+                        <Reply className="h-3 w-3" /> Antwort von {user.name}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{review.response}</p>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.createdAt).toLocaleDateString("de-DE", {
+                        day: "numeric", month: "long", year: "numeric",
+                      })}
+                    </span>
+                    {currentUserId === id && !review.response && (
+                      <button
+                        onClick={() => {
+                          setRespondingTo(respondingTo === review.id ? null : review.id);
+                          setResponseText("");
+                        }}
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Reply className="h-3 w-3" /> Antworten
+                      </button>
+                    )}
                   </div>
+                  {respondingTo === review.id && (
+                    <div className="mt-3 space-y-2">
+                      <Textarea
+                        value={responseText}
+                        onChange={(e) => setResponseText(e.target.value)}
+                        placeholder="Deine Antwort auf diese Bewertung..."
+                        rows={2}
+                        className="text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => submitResponse(review.id)}
+                          disabled={responding || responseText.trim().length < 2}
+                          className="gap-1"
+                        >
+                          {responding && <Loader2Icon className="h-3 w-3 animate-spin" />}
+                          Absenden
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setRespondingTo(null)}
+                        >
+                          Abbrechen
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

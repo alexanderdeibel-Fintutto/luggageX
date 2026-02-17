@@ -23,8 +23,10 @@ import {
   Clock,
   X,
   Filter,
+  Scale,
 } from "lucide-react";
 import { TrendingRoutes } from "@/components/trending-routes";
+import { DepartureCountdown } from "@/components/departure-countdown";
 
 interface Offer {
   id: string;
@@ -92,6 +94,11 @@ export default function SearchPage() {
   const [sizeFilter, setSizeFilter] = useState("");
   const [negotiableOnly, setNegotiableOnly] = useState(false);
   const [activeFilterCount, setActiveFilterCount] = useState(0);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Read URL params and recent searches on mount
   useEffect(() => {
@@ -137,9 +144,14 @@ export default function SearchPage() {
         if (maxPrice) params.set("maxPrice", maxPrice);
         if (sizeFilter) params.set("size", sizeFilter);
         if (negotiableOnly) params.set("negotiable", "true");
+        params.set("page", "1");
+        params.set("limit", "20");
         const res = await fetch(`/api/offers?${params}`);
         const data = await res.json();
         setOffers(data.offers || []);
+        setHasMore(data.hasMore || false);
+        setTotalResults(data.total || 0);
+        setCurrentPage(1);
       } else {
         const params = new URLSearchParams();
         if (from) params.set("from", from);
@@ -178,6 +190,35 @@ export default function SearchPage() {
   function clearRecentSearches() {
     setRecentSearches([]);
     localStorage.removeItem("luggagex-recent-searches");
+  }
+
+  async function loadMoreOffers() {
+    setLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      const params = new URLSearchParams();
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
+      if (date) params.set("date", date);
+      if (minWeight) params.set("minWeight", minWeight);
+      if (maxPrice) params.set("maxPrice", maxPrice);
+      if (sizeFilter) params.set("size", sizeFilter);
+      if (negotiableOnly) params.set("negotiable", "true");
+      params.set("page", String(nextPage));
+      params.set("limit", "20");
+      const res = await fetch(`/api/offers?${params}`);
+      const data = await res.json();
+      setOffers((prev) => [...prev, ...(data.offers || [])]);
+      setHasMore(data.hasMore || false);
+      setCurrentPage(nextPage);
+    } catch {}
+    setLoadingMore(false);
+  }
+
+  function toggleCompare(id: string) {
+    setCompareIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : prev.length < 3 ? [...prev, id] : prev
+    );
   }
 
   return (
@@ -343,7 +384,7 @@ export default function SearchPage() {
         {!loading && tab === "offers" && offers.length > 0 && (
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm text-muted-foreground">
-              {offers.length} Angebot{offers.length !== 1 ? "e" : ""} gefunden
+              {totalResults > 0 ? totalResults : offers.length} Angebot{(totalResults || offers.length) !== 1 ? "e" : ""} gefunden
             </span>
             <select
               value={sortBy}
@@ -411,10 +452,11 @@ export default function SearchPage() {
                                 {offer.arrivalAirport}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                               <span>{offer.flightNumber}</span>
                               <span>|</span>
                               <span>{formatDateTime(offer.departureDate)}</span>
+                              <DepartureCountdown departureDate={offer.departureDate} compact />
                             </div>
                           </div>
                         </div>
@@ -457,11 +499,30 @@ export default function SearchPage() {
                         <span className="text-sm text-muted-foreground">
                           {offer.user.totalDeals} Deals
                         </span>
+                        <button
+                          onClick={(e) => { e.preventDefault(); toggleCompare(offer.id); }}
+                          className={`ml-auto text-xs flex items-center gap-1 px-2 py-0.5 rounded-full border transition-colors ${
+                            compareIds.includes(offer.id)
+                              ? "bg-primary/10 border-primary text-primary"
+                              : "hover:border-primary hover:text-primary"
+                          }`}
+                        >
+                          <Scale className="h-3 w-3" />
+                          {compareIds.includes(offer.id) ? "Gewählt" : "Vergleichen"}
+                        </button>
                       </div>
                     </CardContent>
                   </Card>
                 </Link>
               ))
+            )}
+            {hasMore && (
+              <div className="text-center pt-4">
+                <Button variant="outline" onClick={loadMoreOffers} disabled={loadingMore} className="gap-2">
+                  {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Mehr laden
+                </Button>
+              </div>
             )}
           </div>
         ) : (
@@ -530,6 +591,28 @@ export default function SearchPage() {
           <TrendingRoutes />
         </div>
       </div>
+
+      {/* Compare Bar */}
+      {compareIds.length >= 2 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-40 p-3">
+          <div className="container mx-auto flex items-center justify-between max-w-4xl">
+            <span className="text-sm font-medium">
+              {compareIds.length} Angebote ausgewählt
+            </span>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setCompareIds([])}>
+                Zurücksetzen
+              </Button>
+              <Link href={`/compare?ids=${compareIds.join(",")}`}>
+                <Button size="sm" className="gap-1.5">
+                  <Scale className="h-3.5 w-3.5" />
+                  Vergleichen
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

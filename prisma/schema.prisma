@@ -201,5 +201,7 @@ model Review {
   toUser      User     @relation("ReviewsReceived", fields: [toUserId], references: [id])
   rating      Int      // 1-5
   comment     String?
+  response    String?
+  respondedAt DateTime?
   createdAt   DateTime @default(now())
 }

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { ReportDialog } from "@/components/report-dialog";
 import { RouteVisual } from "@/components/route-visual";
+import { DepartureCountdown } from "@/components/departure-countdown";
 
 interface SimilarOffer {
   id: string;
@@ -243,13 +244,14 @@ export default function OfferDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Route Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
           <Badge variant={offer.status === "active" ? "success" : "secondary"}>
             {offer.status === "active" ? "Aktiv" : offer.status === "paused" ? "Pausiert" : offer.status}
           </Badge>
           <span className="text-sm text-muted-foreground">
             {offer.airline}
           </span>
+          <DepartureCountdown departureDate={offer.departureDate} />
         </div>
         <RouteVisual
           departureCity={offer.departureCity}
