@@ -40,9 +40,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Login error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Login error:", message);
     return NextResponse.json(
-      { error: "Anmeldung fehlgeschlagen" },
+      { error: "Anmeldung fehlgeschlagen", details: process.env.NODE_ENV !== "production" ? message : undefined },
       { status: 500 }
     );
   }

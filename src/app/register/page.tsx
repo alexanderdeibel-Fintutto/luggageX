@@ -42,7 +42,8 @@ export default function RegisterPage() {
       const result = await res.json();
 
       if (!res.ok) {
-        setError(result.error || "Registrierung fehlgeschlagen");
+        const detail = result.details ? ` (${result.details})` : "";
+        setError((result.error || "Registrierung fehlgeschlagen") + detail);
         return;
       }
 

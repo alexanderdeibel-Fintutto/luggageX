@@ -34,7 +34,8 @@ export default function LoginPage() {
       const result = await res.json();
 
       if (!res.ok) {
-        setError(result.error || "Anmeldung fehlgeschlagen");
+        const detail = result.details ? ` (${result.details})` : "";
+        setError((result.error || "Anmeldung fehlgeschlagen") + detail);
         return;
       }
 

@@ -37,9 +37,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Registration error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Registration error:", message);
     return NextResponse.json(
-      { error: "Registrierung fehlgeschlagen" },
+      { error: "Registrierung fehlgeschlagen", details: process.env.NODE_ENV !== "production" ? message : undefined },
       { status: 500 }
     );
   }
