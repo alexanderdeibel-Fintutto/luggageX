@@ -1,27 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Providers } from "@/components/providers";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
 
 export const metadata: Metadata = {
-  title: "LuggageX - Gepäck-Marktplatz | FinnTutto",
+  title: "FinnTutto – Alle Apps auf einen Blick",
   description:
-    "Die Tauschbörse für freies Fluggepäck. Biete ungenutztes Gepäck an oder finde günstigen Transport für deine Sendungen.",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "LuggageX",
-  },
+    "Das FinnTutto-Ökosystem: Immobilienverwaltung, Mieterportal, Zählerablesung und mehr – alle Apps zentral verlinkt.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: "#0ea5e9",
+  themeColor: "#06080f",
 };
 
 export default function RootLayout({
@@ -31,13 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <body className="antialiased min-h-screen flex flex-col">
-        <Providers>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </Providers>
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
