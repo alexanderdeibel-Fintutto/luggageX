@@ -8,8 +8,8 @@ const translations: Record<Locale, Record<string, string>> = {
   de: {
     // Navigation
     "nav.search": "Suchen",
-    "nav.offerLuggage": "Gepäck anbieten",
-    "nav.searchLuggage": "Gepäck suchen",
+    "nav.offerLuggage": "Transport anbieten",
+    "nav.searchLuggage": "Paket versenden",
     "nav.dashboard": "Dashboard",
     "nav.messages": "Nachrichten",
     "nav.bookmarks": "Gemerkt",
@@ -85,6 +85,17 @@ const translations: Record<Locale, Record<string, string>> = {
     "settings.security": "Sicherheit",
     "settings.language": "Sprache",
 
+    // Logistics
+    "logistics.firstMile": "Erste Meile",
+    "logistics.lastMile": "Letzte Meile",
+    "logistics.originPickup": "Abholung beim Absender",
+    "logistics.destinationDelivery": "Zustellung beim Empfaenger",
+    "logistics.senderAddress": "Absenderadresse",
+    "logistics.recipientAddress": "Empfaengeradresse",
+    "logistics.localShipping": "Lokaler Versand",
+    "logistics.extraSuitcase": "Zusatzkoffer",
+    "logistics.spaceInOwn": "Platz im eigenen Koffer",
+
     // Misc
     "insurance.title": "Versicherung & Schutz",
     "disputes.title": "Streitfall melden",
@@ -94,8 +105,8 @@ const translations: Record<Locale, Record<string, string>> = {
   en: {
     // Navigation
     "nav.search": "Search",
-    "nav.offerLuggage": "Offer luggage",
-    "nav.searchLuggage": "Find luggage",
+    "nav.offerLuggage": "Offer transport",
+    "nav.searchLuggage": "Send a package",
     "nav.dashboard": "Dashboard",
     "nav.messages": "Messages",
     "nav.bookmarks": "Saved",
@@ -170,6 +181,17 @@ const translations: Record<Locale, Record<string, string>> = {
     "settings.notifications": "Notifications",
     "settings.security": "Security",
     "settings.language": "Language",
+
+    // Logistics
+    "logistics.firstMile": "First mile",
+    "logistics.lastMile": "Last mile",
+    "logistics.originPickup": "Pickup from sender",
+    "logistics.destinationDelivery": "Delivery to recipient",
+    "logistics.senderAddress": "Sender address",
+    "logistics.recipientAddress": "Recipient address",
+    "logistics.localShipping": "Local shipping",
+    "logistics.extraSuitcase": "Extra suitcase",
+    "logistics.spaceInOwn": "Space in own luggage",
 
     // Misc
     "insurance.title": "Insurance & Protection",

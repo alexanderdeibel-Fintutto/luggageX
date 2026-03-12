@@ -6,7 +6,8 @@ import { useState, useEffect } from "react";
 import {
   Luggage,
   Search,
-  PlusCircle,
+  Plane,
+  Package,
   MessageSquare,
   User,
   LogOut,
@@ -72,13 +73,13 @@ export function Header() {
           </Link>
           <Link href="/offers/new">
             <Button variant="ghost" size="sm" className="gap-2">
-              <PlusCircle className="h-4 w-4" />
+              <Plane className="h-4 w-4" />
               {t("nav.offerLuggage")}
             </Button>
           </Link>
           <Link href="/requests/new">
             <Button variant="ghost" size="sm" className="gap-2">
-              <PlusCircle className="h-4 w-4" />
+              <Package className="h-4 w-4" />
               {t("nav.searchLuggage")}
             </Button>
           </Link>
@@ -161,12 +162,12 @@ export function Header() {
           </Link>
           <Link href="/offers/new" onClick={() => setMenuOpen(false)}>
             <Button variant="ghost" className="w-full justify-start gap-2">
-              <PlusCircle className="h-4 w-4" /> {t("nav.offerLuggage")}
+              <Plane className="h-4 w-4" /> {t("nav.offerLuggage")}
             </Button>
           </Link>
           <Link href="/requests/new" onClick={() => setMenuOpen(false)}>
             <Button variant="ghost" className="w-full justify-start gap-2">
-              <PlusCircle className="h-4 w-4" /> {t("nav.searchLuggage")}
+              <Package className="h-4 w-4" /> {t("nav.searchLuggage")}
             </Button>
           </Link>
           {user ? (

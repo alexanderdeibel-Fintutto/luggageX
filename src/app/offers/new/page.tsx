@@ -11,12 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { AirportSearch } from "@/components/airport-search";
 import { SIZE_CATEGORIES } from "@/lib/airports";
-import { Plane, Package, MapPin, Euro, Loader2, Copy } from "lucide-react";
+import { Plane, Package, MapPin, Euro, Loader2, Copy, Truck, Briefcase, Info } from "lucide-react";
 
 interface RelistData {
   flightNumber: string;
   departureAirport: string;
   arrivalAirport: string;
+  luggageType: string;
+  extraSuitcaseCount: number;
   availableWeight: number;
   maxSingleItem: number | null;
   sizeCategory: string;
@@ -26,8 +28,12 @@ interface RelistData {
   negotiable: boolean;
   pickupType: string;
   pickupAddress: string | null;
+  pickupCity: string | null;
+  offersOriginPickup: boolean;
   dropoffType: string;
   dropoffAddress: string | null;
+  dropoffCity: string | null;
+  offersDestinationDelivery: boolean;
 }
 
 export default function NewOfferPage() {
@@ -38,6 +44,9 @@ export default function NewOfferPage() {
   const [arrivalAirport, setArrivalAirport] = useState("");
   const [relistData, setRelistData] = useState<RelistData | null>(null);
   const [isRelist, setIsRelist] = useState(false);
+  const [luggageType, setLuggageType] = useState("extra_suitcase");
+  const [offersOriginPickup, setOffersOriginPickup] = useState(false);
+  const [offersDestinationDelivery, setOffersDestinationDelivery] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -52,6 +61,9 @@ export default function NewOfferPage() {
             setRelistData(o);
             setDepartureAirport(o.departureAirport);
             setArrivalAirport(o.arrivalAirport);
+            setLuggageType(o.luggageType || "extra_suitcase");
+            setOffersOriginPickup(o.offersOriginPickup || false);
+            setOffersDestinationDelivery(o.offersDestinationDelivery || false);
           }
         })
         .catch(() => {});
@@ -70,6 +82,8 @@ export default function NewOfferPage() {
       arrivalAirport,
       departureDate: formData.get("departureDate") as string,
       arrivalDate: formData.get("arrivalDate") as string,
+      luggageType,
+      extraSuitcaseCount: luggageType !== "space_in_own" ? Number(formData.get("extraSuitcaseCount")) || 1 : 0,
       availableWeight: Number(formData.get("availableWeight")),
       maxSingleItem: Number(formData.get("maxSingleItem")) || undefined,
       sizeCategory: formData.get("sizeCategory") as string,
@@ -79,8 +93,12 @@ export default function NewOfferPage() {
       negotiable: formData.get("negotiable") === "on",
       pickupType: formData.get("pickupType") as string,
       pickupAddress: formData.get("pickupAddress") as string,
+      pickupCity: formData.get("pickupCity") as string,
+      offersOriginPickup,
       dropoffType: formData.get("dropoffType") as string,
       dropoffAddress: formData.get("dropoffAddress") as string,
+      dropoffCity: formData.get("dropoffCity") as string,
+      offersDestinationDelivery,
     };
 
     try {
@@ -108,16 +126,16 @@ export default function NewOfferPage() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">
-          {isRelist ? "Angebot erneut einstellen" : "Gepäck anbieten"}
+          {isRelist ? "Angebot erneut einstellen" : "Transport anbieten"}
         </h1>
         <p className="text-muted-foreground">
           {isRelist
-            ? "Daten aus dem vorherigen Angebot wurden übernommen. Aktualisiere Datum und Details."
-            : "Biete dein freies Gepäck-Kontingent auf deinem Flug an"}
+            ? "Daten aus dem vorherigen Angebot wurden uebernommen. Aktualisiere Datum und Details."
+            : "Du fliegst bald? Biete an, Pakete oder Koffer fuer andere mitzunehmen und verdiene dabei."}
         </p>
         {isRelist && (
           <Badge variant="secondary" className="mt-2 gap-1">
-            <Copy className="h-3 w-3" /> Kopie eines früheren Angebots
+            <Copy className="h-3 w-3" /> Kopie eines frueheren Angebots
           </Badge>
         )}
       </div>
@@ -134,9 +152,9 @@ export default function NewOfferPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Plane className="h-5 w-5 text-primary" />
-              Flugdaten
+              Deine Flugdaten
             </CardTitle>
-            <CardDescription>Gib deine Fluginformationen ein</CardDescription>
+            <CardDescription>Auf welchem Flug kannst du etwas mitnehmen?</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -155,7 +173,7 @@ export default function NewOfferPage() {
                 <AirportSearch
                   value={departureAirport}
                   onChange={setDepartureAirport}
-                  placeholder="z.B. Frankfurt"
+                  placeholder="z.B. Lima (LIM)"
                 />
               </div>
               <div className="space-y-2">
@@ -163,7 +181,7 @@ export default function NewOfferPage() {
                 <AirportSearch
                   value={arrivalAirport}
                   onChange={setArrivalAirport}
-                  placeholder="z.B. London"
+                  placeholder="z.B. Zuerich (ZRH)"
                 />
               </div>
             </div>
@@ -190,32 +208,107 @@ export default function NewOfferPage() {
           </CardContent>
         </Card>
 
+        {/* Luggage Type */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Briefcase className="h-5 w-5 text-primary" />
+              Art des Transports
+            </CardTitle>
+            <CardDescription>Wie moechtest du Gepaeck mitnehmen?</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setLuggageType("extra_suitcase")}
+                className={`p-4 rounded-lg border-2 text-left transition-colors ${
+                  luggageType === "extra_suitcase"
+                    ? "border-primary bg-primary/5"
+                    : "border-input hover:border-primary/50"
+                }`}
+              >
+                <Package className="h-6 w-6 mb-2 text-primary" />
+                <div className="font-semibold text-sm">Zusatzkoffer</div>
+                <div className="text-xs text-muted-foreground">
+                  Ich checke extra Koffer ein
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLuggageType("space_in_own")}
+                className={`p-4 rounded-lg border-2 text-left transition-colors ${
+                  luggageType === "space_in_own"
+                    ? "border-primary bg-primary/5"
+                    : "border-input hover:border-primary/50"
+                }`}
+              >
+                <Briefcase className="h-6 w-6 mb-2 text-primary" />
+                <div className="font-semibold text-sm">Platz im Koffer</div>
+                <div className="text-xs text-muted-foreground">
+                  Ich habe Platz in meinem eigenen Koffer
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLuggageType("both")}
+                className={`p-4 rounded-lg border-2 text-left transition-colors ${
+                  luggageType === "both"
+                    ? "border-primary bg-primary/5"
+                    : "border-input hover:border-primary/50"
+                }`}
+              >
+                <Package className="h-6 w-6 mb-2 text-primary" />
+                <div className="font-semibold text-sm">Beides</div>
+                <div className="text-xs text-muted-foreground">
+                  Platz im Koffer + Zusatzkoffer
+                </div>
+              </button>
+            </div>
+
+            {luggageType !== "space_in_own" && (
+              <div className="space-y-2">
+                <Label htmlFor="extraSuitcaseCount">Anzahl Zusatzkoffer</Label>
+                <Select
+                  id="extraSuitcaseCount"
+                  name="extraSuitcaseCount"
+                  defaultValue={String(relistData?.extraSuitcaseCount || 1)}
+                >
+                  <option value="1">1 Koffer</option>
+                  <option value="2">2 Koffer</option>
+                  <option value="3">3 Koffer</option>
+                </Select>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Luggage Details */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Package className="h-5 w-5 text-primary" />
-              Gepäck-Details
+              Kapazitaet
             </CardTitle>
-            <CardDescription>Wie viel Platz hast du frei?</CardDescription>
+            <CardDescription>Wie viel Platz / Gewicht kannst du anbieten?</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="availableWeight">Verfügbares Gewicht (kg)</Label>
+                <Label htmlFor="availableWeight">Verfuegbares Gewicht (kg)</Label>
                 <Input
                   id="availableWeight"
                   name="availableWeight"
                   type="number"
                   step="0.5"
                   min="0.5"
-                  placeholder="z.B. 10"
+                  placeholder="z.B. 23"
                   defaultValue={relistData?.availableWeight || ""}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxSingleItem">Max. Einzelstück (kg)</Label>
+                <Label htmlFor="maxSingleItem">Max. Einzelstueck (kg)</Label>
                 <Input
                   id="maxSingleItem"
                   name="maxSingleItem"
@@ -227,7 +320,7 @@ export default function NewOfferPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sizeCategory">Maximale Größe</Label>
+              <Label htmlFor="sizeCategory">Maximale Groesse</Label>
               <Select id="sizeCategory" name="sizeCategory" defaultValue={relistData?.sizeCategory || "M"}>
                 {SIZE_CATEGORIES.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -241,7 +334,7 @@ export default function NewOfferPage() {
               <Textarea
                 id="description"
                 name="description"
-                placeholder="z.B. Platz in meinem Koffer, keine Flüssigkeiten..."
+                placeholder="z.B. Nehme gerne Pakete bis Koffergroesse mit. Keine Fluessigkeiten oder zerbrechliche Waren..."
                 rows={3}
                 defaultValue={relistData?.description || ""}
               />
@@ -256,7 +349,7 @@ export default function NewOfferPage() {
               <Euro className="h-5 w-5 text-primary" />
               Preisgestaltung
             </CardTitle>
-            <CardDescription>Setze deinen Preis oder wähle &quot;Verhandelbar&quot;</CardDescription>
+            <CardDescription>Was verlangst du fuer den Transport?</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -273,14 +366,14 @@ export default function NewOfferPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="flatPrice">Oder: Pauschalpreis (EUR)</Label>
+                <Label htmlFor="flatPrice">Oder: Pauschalpreis pro Koffer (EUR)</Label>
                 <Input
                   id="flatPrice"
                   name="flatPrice"
                   type="number"
                   step="1"
                   min="0"
-                  placeholder="z.B. 20"
+                  placeholder="z.B. 50"
                   defaultValue={relistData?.flatPrice || ""}
                 />
               </div>
@@ -300,60 +393,135 @@ export default function NewOfferPage() {
           </CardContent>
         </Card>
 
-        {/* Handover */}
+        {/* Origin Handover - Where traveler receives packages */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <MapPin className="h-5 w-5 text-primary" />
-              Übergabe
+              Empfangsort im Abflugland
             </CardTitle>
-            <CardDescription>Wo und wie soll die Übergabe stattfinden?</CardDescription>
+            <CardDescription>
+              Wohin soll der Absender das Paket schicken oder bringen, damit du es vor dem Flug erhaeltst?
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pickupType">Abholung</Label>
-                <Select id="pickupType" name="pickupType" defaultValue={relistData?.pickupType || "airport"}>
-                  <option value="airport">Am Flughafen</option>
-                  <option value="address">An einer Adresse</option>
-                  <option value="meetingPoint">Treffpunkt</option>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pickupAddress">Abholadresse (optional)</Label>
-                <Input
-                  id="pickupAddress"
-                  name="pickupAddress"
-                  placeholder="Straße, PLZ, Ort"
-                  defaultValue={relistData?.pickupAddress || ""}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="pickupType">Empfangsart</Label>
+              <Select id="pickupType" name="pickupType" defaultValue={relistData?.pickupType || "address"}>
+                <option value="address">An meiner Adresse (Empfehlung)</option>
+                <option value="airport">Am Flughafen</option>
+                <option value="meetingPoint">Treffpunkt vereinbaren</option>
+              </Select>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dropoffType">Abgabe</Label>
-                <Select id="dropoffType" name="dropoffType" defaultValue={relistData?.dropoffType || "airport"}>
-                  <option value="airport">Am Flughafen</option>
-                  <option value="address">An einer Adresse</option>
-                  <option value="meetingPoint">Treffpunkt</option>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dropoffAddress">Abgabeadresse (optional)</Label>
-                <Input
-                  id="dropoffAddress"
-                  name="dropoffAddress"
-                  placeholder="Straße, PLZ, Ort"
-                  defaultValue={relistData?.dropoffAddress || ""}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="pickupAddress">Deine Empfangsadresse</Label>
+              <Input
+                id="pickupAddress"
+                name="pickupAddress"
+                placeholder="Strasse, PLZ, Ort"
+                defaultValue={relistData?.pickupAddress || ""}
+              />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="pickupCity">Stadt</Label>
+              <Input
+                id="pickupCity"
+                name="pickupCity"
+                placeholder="z.B. Lima"
+                defaultValue={relistData?.pickupCity || ""}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="offersOriginPickup"
+                checked={offersOriginPickup}
+                onChange={(e) => setOffersOriginPickup(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <Label htmlFor="offersOriginPickup" className="font-normal">
+                Ich biete an, das Paket beim Absender abzuholen
+              </Label>
+            </div>
+            {offersOriginPickup && (
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    Der Absender sieht, dass du bereit bist, das Paket direkt abzuholen. Die Details koennt ihr im Chat klaren.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Destination Handover - Where traveler delivers packages */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Truck className="h-5 w-5 text-primary" />
+              Abgabeort im Zielland
+            </CardTitle>
+            <CardDescription>
+              Wo kann der Empfaenger das Paket abholen oder wohin lieferst du es nach der Ankunft?
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="dropoffType">Abgabeart</Label>
+              <Select id="dropoffType" name="dropoffType" defaultValue={relistData?.dropoffType || "address"}>
+                <option value="address">An meiner Adresse (Empfehlung)</option>
+                <option value="airport">Am Flughafen</option>
+                <option value="meetingPoint">Treffpunkt vereinbaren</option>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dropoffAddress">Deine Abgabeadresse</Label>
+              <Input
+                id="dropoffAddress"
+                name="dropoffAddress"
+                placeholder="Strasse, PLZ, Ort"
+                defaultValue={relistData?.dropoffAddress || ""}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dropoffCity">Stadt</Label>
+              <Input
+                id="dropoffCity"
+                name="dropoffCity"
+                placeholder="z.B. Zuerich"
+                defaultValue={relistData?.dropoffCity || ""}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="offersDestinationDelivery"
+                checked={offersDestinationDelivery}
+                onChange={(e) => setOffersDestinationDelivery(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <Label htmlFor="offersDestinationDelivery" className="font-normal">
+                Ich biete an, das Paket zum Empfaenger zu liefern
+              </Label>
+            </div>
+            {offersDestinationDelivery && (
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    Der Empfaenger sieht, dass du bereit bist, das Paket direkt zu liefern. Die Details koennt ihr im Chat klaren.
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Button type="submit" size="lg" className="w-full gap-2" disabled={loading}>
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          Angebot veröffentlichen
+          Transport-Angebot veroeffentlichen
         </Button>
       </form>
     </div>

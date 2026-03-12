@@ -99,6 +99,8 @@ export async function POST(request: NextRequest) {
         arrivalCity: arrAirport?.city || data.arrivalAirport,
         departureDate: new Date(data.departureDate),
         arrivalDate: new Date(data.arrivalDate),
+        luggageType: data.luggageType,
+        extraSuitcaseCount: data.extraSuitcaseCount,
         availableWeight: data.availableWeight,
         maxSingleItem: data.maxSingleItem || null,
         sizeCategory: data.sizeCategory,
@@ -108,8 +110,12 @@ export async function POST(request: NextRequest) {
         negotiable: data.negotiable,
         pickupType: data.pickupType,
         pickupAddress: data.pickupAddress || null,
+        pickupCity: data.pickupCity || null,
+        offersOriginPickup: data.offersOriginPickup,
         dropoffType: data.dropoffType,
         dropoffAddress: data.dropoffAddress || null,
+        dropoffCity: data.dropoffCity || null,
+        offersDestinationDelivery: data.offersDestinationDelivery,
       },
     });
 
