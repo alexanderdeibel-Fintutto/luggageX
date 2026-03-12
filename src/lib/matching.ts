@@ -1,11 +1,17 @@
 interface OfferData {
   departureAirport: string;
   arrivalAirport: string;
+  departureCity: string;
+  arrivalCity: string;
   departureDate: Date;
   availableWeight: number;
   sizeCategory: string;
   pricePerKg: number | null;
   flatPrice: number | null;
+  pickupCity: string | null;
+  dropoffCity: string | null;
+  offersOriginPickup: boolean;
+  offersDestinationDelivery: boolean;
 }
 
 interface RequestData {
@@ -18,6 +24,12 @@ interface RequestData {
   neededWeight: number;
   sizeCategory: string;
   maxBudget: number | null;
+  senderCity: string | null;
+  recipientCity: string | null;
+  needsFirstMile: boolean;
+  needsLastMile: boolean;
+  pickupPreference: string;
+  dropoffPreference: string;
 }
 
 const SIZE_ORDER: Record<string, number> = { S: 1, M: 2, L: 3, XL: 4 };
@@ -25,23 +37,23 @@ const SIZE_ORDER: Record<string, number> = { S: 1, M: 2, L: 3, XL: 4 };
 export function calculateMatchScore(offer: OfferData, request: RequestData): number {
   let score = 0;
 
-  // Route match (most important - 40 points)
+  // Route match (most important - 35 points)
   const routeMatch = checkRouteMatch(offer, request);
-  if (routeMatch === 0) return 0; // No route match = no match
-  score += routeMatch * 40;
+  if (routeMatch === 0) return 0;
+  score += routeMatch * 35;
 
-  // Date match (30 points)
+  // Date match (25 points)
   const dateMatch = checkDateMatch(offer.departureDate, request.earliestDate, request.latestDate);
-  if (dateMatch === 0) return 0; // Out of date range = no match
-  score += dateMatch * 30;
+  if (dateMatch === 0) return 0;
+  score += dateMatch * 25;
 
   // Weight match (15 points)
   if (offer.availableWeight >= request.neededWeight) {
     score += 15;
   } else if (offer.availableWeight >= request.neededWeight * 0.8) {
-    score += 10; // Close enough, might negotiate
+    score += 10;
   } else {
-    return 0; // Not enough capacity
+    return 0;
   }
 
   // Size match (10 points)
@@ -50,8 +62,11 @@ export function calculateMatchScore(offer: OfferData, request: RequestData): num
   if (offerSize >= requestSize) {
     score += 10;
   } else if (offerSize === requestSize - 1) {
-    score += 5; // One size smaller, might work
+    score += 5;
   }
+
+  // Logistics compatibility (10 points)
+  score += checkLogisticsMatch(offer, request);
 
   // Price match (5 points)
   if (request.maxBudget && request.maxBudget > 0) {
@@ -59,10 +74,10 @@ export function calculateMatchScore(offer: OfferData, request: RequestData): num
     if (offerPrice <= request.maxBudget) {
       score += 5;
     } else if (offerPrice <= request.maxBudget * 1.2) {
-      score += 2; // Slightly over budget
+      score += 2;
     }
   } else {
-    score += 3; // No budget limit
+    score += 3;
   }
 
   return Math.round(score);
@@ -77,11 +92,10 @@ function checkRouteMatch(offer: OfferData, request: RequestData): number {
     ) {
       return 1;
     }
-    // Same city different airport
     return 0;
   }
 
-  // City-based matching (partial)
+  // City-based matching
   const depMatch =
     !request.departureAirport ||
     offer.departureAirport === request.departureAirport;
@@ -99,12 +113,11 @@ function checkDateMatch(flightDate: Date, earliest: Date, latest: Date): number 
   const end = new Date(latest).getTime();
 
   if (flight >= start && flight <= end) {
-    // Perfect match - closer to middle of range is better
     const range = end - start;
     if (range === 0) return 1;
     const mid = start + range / 2;
     const distFromMid = Math.abs(flight - mid);
-    return 1 - (distFromMid / range) * 0.3; // 0.7-1.0 range
+    return 1 - (distFromMid / range) * 0.3;
   }
 
   // Within 1 day buffer
@@ -114,4 +127,49 @@ function checkDateMatch(flightDate: Date, earliest: Date, latest: Date): number 
   }
 
   return 0;
+}
+
+function checkLogisticsMatch(offer: OfferData, request: RequestData): number {
+  let logisticsScore = 0;
+
+  // Origin logistics (5 points)
+  if (request.needsFirstMile) {
+    // Sender needs first-mile: bonus if traveler offers pickup from sender
+    if (offer.offersOriginPickup) {
+      logisticsScore += 5;
+    } else if (offer.pickupCity && request.senderCity &&
+      offer.pickupCity.toLowerCase() === request.senderCity.toLowerCase()) {
+      logisticsScore += 3; // Same city makes first-mile easier
+    } else {
+      logisticsScore += 1; // First-mile is possible via local carrier
+    }
+  } else {
+    // Sender handles origin logistics themselves
+    if (request.pickupPreference === "flexible" || request.pickupPreference === "address") {
+      logisticsScore += 4;
+    } else {
+      logisticsScore += 3;
+    }
+  }
+
+  // Destination logistics (5 points)
+  if (request.needsLastMile) {
+    // Recipient needs last-mile: bonus if traveler offers delivery
+    if (offer.offersDestinationDelivery) {
+      logisticsScore += 5;
+    } else if (offer.dropoffCity && request.recipientCity &&
+      offer.dropoffCity.toLowerCase() === request.recipientCity.toLowerCase()) {
+      logisticsScore += 3; // Same city makes last-mile easier
+    } else {
+      logisticsScore += 1; // Last-mile is possible via local carrier
+    }
+  } else {
+    if (request.dropoffPreference === "flexible" || request.dropoffPreference === "address") {
+      logisticsScore += 4;
+    } else {
+      logisticsScore += 3;
+    }
+  }
+
+  return logisticsScore;
 }

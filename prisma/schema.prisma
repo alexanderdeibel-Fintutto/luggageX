@@ -62,7 +62,9 @@ model LuggageOffer {
   departureDate   DateTime
   arrivalDate     DateTime
 
-  // Luggage details
+  // Luggage capacity
+  luggageType     String   @default("extra_suitcase") // "space_in_own" | "extra_suitcase" | "both"
+  extraSuitcaseCount Int   @default(1) // How many extra suitcases the traveler will check in
   availableWeight Float
   maxSingleItem   Float?
   sizeCategory    String   @default("M")
@@ -74,20 +76,25 @@ model LuggageOffer {
   currency        String   @default("EUR")
   negotiable      Boolean  @default(true)
 
-  // Handover
-  pickupType      String   @default("airport")
-  pickupAddress   String?
+  // Origin handover (where traveler RECEIVES packages in departure country)
+  pickupType      String   @default("address") // "address" | "airport" | "meetingPoint"
+  pickupAddress   String?  // Traveler's receiving address in origin country
+  pickupCity      String?  // City for the pickup address
   pickupLat       Float?
   pickupLng       Float?
   pickupTimeStart DateTime?
   pickupTimeEnd   DateTime?
+  offersOriginPickup Boolean @default(false) // Traveler offers to pick up from sender's location
 
-  dropoffType     String   @default("airport")
-  dropoffAddress  String?
+  // Destination handover (where traveler DELIVERS packages in destination country)
+  dropoffType     String   @default("address") // "address" | "airport" | "meetingPoint"
+  dropoffAddress  String?  // Traveler's delivery address in destination country
+  dropoffCity     String?  // City for the dropoff address
   dropoffLat      Float?
   dropoffLng      Float?
   dropoffTimeStart DateTime?
   dropoffTimeEnd  DateTime?
+  offersDestinationDelivery Boolean @default(false) // Traveler offers to deliver to recipient's address
 
   status          String   @default("active")
   createdAt       DateTime @default(now())
@@ -125,12 +132,22 @@ model LuggageRequest {
   currency        String   @default("EUR")
 
   // Request type
-  requestType     String   @default("shipment")
+  requestType     String   @default("shipment") // "shipment" | "extra_luggage"
   flightNumber    String?
 
-  // Handover preference
-  pickupPreference  String @default("flexible")
-  dropoffPreference String @default("flexible")
+  // Sender's address in the origin country (for first-mile shipping)
+  senderAddress   String?
+  senderCity      String?
+
+  // Recipient's address in the destination country (for last-mile delivery)
+  recipientAddress String?
+  recipientCity   String?
+
+  // Local shipping preferences
+  needsFirstMile  Boolean  @default(false) // Needs local shipping from sender to traveler's pickup
+  needsLastMile   Boolean  @default(false) // Needs local delivery from traveler's dropoff to recipient
+  pickupPreference  String @default("flexible") // "airport" | "address" | "flexible"
+  dropoffPreference String @default("flexible") // "airport" | "address" | "flexible"
 
   status          String   @default("active")
   createdAt       DateTime @default(now())
@@ -162,6 +179,16 @@ model Match {
   dropoffConfirmedAt DateTime?
   pickupPhotoUrl    String?
   dropoffPhotoUrl   String?
+
+  // First-mile: local shipping from sender to traveler's pickup address (origin country)
+  firstMileStatus   String?  // "pending" | "shipped" | "delivered"
+  firstMileCarrier  String?  // e.g. "DHL", "local partner"
+  firstMileTracking String?
+
+  // Last-mile: local delivery from traveler's dropoff address to recipient (destination country)
+  lastMileStatus    String?  // "pending" | "shipped" | "delivered"
+  lastMileCarrier   String?  // e.g. "Swiss Post", "local partner"
+  lastMileTracking  String?
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

@@ -40,11 +40,17 @@ export async function GET(request: NextRequest) {
           {
             departureAirport: offer.departureAirport,
             arrivalAirport: offer.arrivalAirport,
+            departureCity: offer.departureCity,
+            arrivalCity: offer.arrivalCity,
             departureDate: offer.departureDate,
             availableWeight: offer.availableWeight,
             sizeCategory: offer.sizeCategory,
             pricePerKg: offer.pricePerKg,
             flatPrice: offer.flatPrice,
+            pickupCity: offer.pickupCity,
+            dropoffCity: offer.dropoffCity,
+            offersOriginPickup: offer.offersOriginPickup,
+            offersDestinationDelivery: offer.offersDestinationDelivery,
           },
           {
             departureAirport: luggageRequest.departureAirport,
@@ -56,6 +62,12 @@ export async function GET(request: NextRequest) {
             neededWeight: luggageRequest.neededWeight,
             sizeCategory: luggageRequest.sizeCategory,
             maxBudget: luggageRequest.maxBudget,
+            senderCity: luggageRequest.senderCity,
+            recipientCity: luggageRequest.recipientCity,
+            needsFirstMile: luggageRequest.needsFirstMile,
+            needsLastMile: luggageRequest.needsLastMile,
+            pickupPreference: luggageRequest.pickupPreference,
+            dropoffPreference: luggageRequest.dropoffPreference,
           }
         ),
       }))
